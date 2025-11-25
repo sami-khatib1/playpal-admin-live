@@ -1,0 +1,69 @@
+/* Dashboard page styles - Professional Admin Design */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.75rem;
+    margin-top: 2rem;
+}
+
+.dashboard-card {
+    background: var(--color-card);
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 12px var(--color-shadow);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px var(--color-shadow-hover);
+}
+
+.dashboard-card:hover::before {
+    transform: scaleX(1);
+}
+
+.dashboard-card h2 {
+    font-size: 1.5rem;
+    color: var(--color-text);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.dashboard-card p {
+    color: var(--color-text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.card-action {
+    color: var(--color-primary-dark);
+    font-weight: 600;
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.dashboard-card:hover .card-action {
+    color: var(--color-primary);
+}
+
