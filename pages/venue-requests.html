@@ -84,6 +84,17 @@
         </div>
     </div>
     
+    <!-- Image Lightbox Modal -->
+    <div id="image-lightbox" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeImageLightbox()">&times;</button>
+            <img id="lightbox-image" src="" alt="Venue image">
+            <div id="lightbox-counter"></div>
+            <button id="lightbox-prev" onclick="navigateLightbox(-1)">&larr;</button>
+            <button id="lightbox-next" onclick="navigateLightbox(1)">&rarr;</button>
+        </div>
+    </div>
+    
     <script src="../js/config.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/venueRequests.js"></script>
