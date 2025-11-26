@@ -140,7 +140,8 @@ The admin dashboard currently has basic functionality for:
 - Year-over-year growth
 - Benchmarking metrics
 
-## Technical Requirements
+### for each domain above (user/game/...) give the ability to delete/update/add each as well but pay atention to rules!
+### for example if user is deleted then he is deleted from all associated games.
 
 ### Backend Endpoints Needed
 
