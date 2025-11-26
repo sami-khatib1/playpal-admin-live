@@ -42,7 +42,7 @@ function renderRequestsTable(requests) {
     tableBody.innerHTML = '';
     
     if (requests.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">No venue requests found</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #666;">No venue requests found</td></tr>';
         return;
     }
     
@@ -65,7 +65,12 @@ function renderRequestsTable(requests) {
             new Date(request.createdAt).toLocaleDateString() : 
             'N/A';
         
+        const requestType = request.requestType || 'create';
+        const typeBadgeClass = requestType === 'update' ? 'badge-update' : 'badge-create';
+        const typeText = requestType === 'update' ? 'Update' : 'Create';
+        
         row.innerHTML = `
+            <td><span class="badge ${typeBadgeClass}">${typeText}</span></td>
             <td>${request.name || 'N/A'}</td>
             <td>${locationText}</td>
             <td>${sportsText}</td>
@@ -183,6 +188,16 @@ async function renderRequestDetails(request) {
         <div class="request-detail-row">
             <div class="request-detail-label">Description:</div>
             <div class="request-detail-value">${request.description || 'No description provided'}</div>
+        </div>
+        
+        <div class="request-detail-row">
+            <div class="request-detail-label">Type:</div>
+            <div class="request-detail-value">
+                <span class="badge ${request.requestType === 'update' ? 'badge-update' : 'badge-create'}">
+                    ${request.requestType === 'update' ? 'Update Request' : 'Create Request'}
+                </span>
+                ${request.requestType === 'update' && request.venueId ? `<br><small style="color: #666;">Venue ID: ${request.venueId}</small>` : ''}
+            </div>
         </div>
         
         <div class="request-detail-row">

@@ -264,6 +264,16 @@ body {
     color: white;
 }
 
+.badge-create {
+    background-color: var(--color-info);
+    color: white;
+}
+
+.badge-update {
+    background-color: var(--color-warning);
+    color: white;
+}
+
 /* Loading - Professional Style */
 .loading {
     text-align: center;
