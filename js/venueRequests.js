@@ -13,8 +13,7 @@ async function fetchVenueRequests() {
         const API_BASE_URL = getApiBaseUrl();
         const url = `${API_BASE_URL}/admin/venue-requests`;
         
-        console.log('📡 Fetching venue requests from:', url);
-        console.log('🔑 Token available:', !!token);
+   
         
         const response = await fetch(url, {
             method: 'GET',
@@ -24,15 +23,12 @@ async function fetchVenueRequests() {
             },
         });
 
-        console.log('📡 Response status:', response.status);
-        console.log('📡 Response ok:', response.ok);
+
 
         const data = await response.json();
-        console.log('📡 Response data:', data);
 
         if (response.ok && data.success) {
             const requests = data.data || data.requests || [];
-            console.log('✅ Fetched venue requests:', requests.length);
             return { success: true, data: requests };
         } else {
             console.error('❌ Error response:', data);
