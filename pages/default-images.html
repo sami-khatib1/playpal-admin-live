@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Default Images - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .default-images-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .image-card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 2px solid var(--color-border);
+        }
+        
+        .image-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: var(--color-text);
+            font-size: 1.1rem;
+        }
+        
+        .image-card .description {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+        }
+        
+        .image-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+        
+        .status-exists {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-missing {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .upload-section {
+            margin-top: 1rem;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            background: var(--color-background);
+            color: var(--color-text);
+            cursor: pointer;
+        }
+        
+        .file-input-wrapper input[type="file"]:hover {
+            border-color: var(--color-primary);
+        }
+        
+        .upload-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .upload-btn:hover:not(:disabled) {
+            background: var(--color-primary-dark);
+        }
+        
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .delete-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background 0.2s;
+        }
+        
+        .delete-btn:hover:not(:disabled) {
+            background: #dc2626;
+        }
+        
+        .delete-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .back-btn {
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Default Images Management</h1>
+        <div class="header-actions">
+            <span id="admin-name" style="color: var(--color-text); font-weight: 500; margin-right: 1rem;"></span>
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')">Back to Dashboard</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="default-images-container">
+        <div class="back-btn">
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')">← Back to Dashboard</button>
+        </div>
+        
+        <h2>Manage Default Images</h2>
+        <p style="color: var(--color-text-secondary); margin-bottom: 2rem;">
+            Upload and manage default images for users, venues, and posts. Images are automatically compressed using the same settings as regular uploads.
+        </p>
+        
+        <div id="loading-message" style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+            Loading default images...
+        </div>
+        
+        <div id="images-grid" class="images-grid" style="display: none;"></div>
+        
+        <div id="error-message" style="display: none;" class="error-message"></div>
+    </div>
+    
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/defaultImages.js"></script>
+    <script>
+        // Check authentication
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            // Display admin name
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            
+            // Load default images
+            loadDefaultImages();
+        }
+    </script>
+</body>
+</html>
+
