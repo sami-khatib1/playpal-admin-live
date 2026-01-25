@@ -8,6 +8,7 @@ function navigate(path) {
         '/signup': 'signup.html',
         '/dashboard': 'dashboard.html',
         '/venue-requests': 'venue-requests.html',
+        '/default-images': 'default-images.html',
     };
     
     // Get the target page filename
