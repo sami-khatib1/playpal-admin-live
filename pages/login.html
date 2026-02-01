@@ -63,6 +63,8 @@
             const errorDiv = document.getElementById('error-message');
             const successDiv = document.getElementById('success-message');
             
+            console.log('[LOG] Login form submitted, calling login()...', { email: email ? '(set)' : '(empty)', mode: window.NetworkConfig?.MODE });
+            
             // Hide previous messages
             errorDiv.style.display = 'none';
             successDiv.style.display = 'none';
@@ -74,6 +76,7 @@
             submitBtn.disabled = true;
             
             const result = await login(email, password);
+            console.log('[LOG] login() returned:', { success: result.success, hasError: !!result.error });
             
             if (result.success) {
                 successDiv.textContent = 'Login successful! Redirecting...';
