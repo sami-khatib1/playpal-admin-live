@@ -6,7 +6,7 @@ const NetworkConfig = {
     // "LOCAL" - localhost (for local development)
     // "NGROK" - ngrok tunnel (for testing with mobile devices or remote access)
     // "PROD" - Google Cloud Run (for production)
-    MODE: "PROD", // "LOCAL" = localhost, "NGROK" = tunnel, "PROD" = remote server (Google Cloud Run)
+    MODE: "LOCAL", // "LOCAL" = localhost, "NGROK" = tunnel, "PROD" = remote server (Google Cloud Run)
     
     // Local development server
     LOCAL_BASE_URL: 'http://localhost:3000/api',
