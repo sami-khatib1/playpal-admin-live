@@ -65,11 +65,19 @@ window.navigate = navigate;
 
 // Login function
 async function login(email, password) {
+    // [LOG] Before request - context for PROD debugging
+    const loginUrl = `${API_BASE_URL}/admin/auth/login`;
+    console.log('🔐 [LOG] Login REQUEST start:', {
+        mode: window.NetworkConfig?.MODE,
+        API_BASE_URL,
+        loginUrl,
+        pageOrigin: window.location.origin || '(empty)',
+        protocol: window.location.protocol,
+        isFile: window.location.protocol === 'file:',
+    });
+
     try {
-        const url = `${API_BASE_URL}/admin/auth/login`;
-        console.log('🔐 Attempting login to:', url);
-        
-        const response = await fetch(url, {
+        const response = await fetch(loginUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -77,12 +85,26 @@ async function login(email, password) {
             body: JSON.stringify({ email, password }),
         });
 
-        console.log('📡 Response status:', response.status);
-        
+        // [LOG] Response received - status and CORS headers
+        const corsOrigin = response.headers.get('Access-Control-Allow-Origin');
+        const corsCredentials = response.headers.get('Access-Control-Allow-Credentials');
+        const allHeaders = {};
+        response.headers.forEach((v, k) => { allHeaders[k] = v; });
+        console.log('📡 [LOG] Login RESPONSE received:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            type: response.type,
+            ok: response.ok,
+            'Access-Control-Allow-Origin': corsOrigin,
+            'Access-Control-Allow-Credentials': corsCredentials,
+            allHeaders,
+        });
+
         // Check if response is ok before trying to parse JSON
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ Response error:', errorText);
+            console.error('❌ [LOG] Response not OK, body:', errorText);
             try {
                 const errorData = JSON.parse(errorText);
                 return { success: false, error: errorData.message || errorData.error || 'Login failed' };
@@ -92,7 +114,7 @@ async function login(email, password) {
         }
 
         const data = await response.json();
-        console.log('✅ Login response:', data);
+        console.log('✅ [LOG] Login response data:', data);
 
         if (data.success) {
             // Store token
@@ -104,10 +126,16 @@ async function login(email, password) {
             return { success: false, error: data.message || data.error || 'Login failed' };
         }
     } catch (error) {
-        console.error('❌ Login error:', error);
-        console.error('   Error type:', error.name);
-        console.error('   Error message:', error.message);
-        console.error('   API_BASE_URL:', API_BASE_URL);
+        // [LOG] Request failed (network/CORS) - full error for PROD debugging
+        console.error('❌ [LOG] Login FAILED (catch):', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            API_BASE_URL,
+            mode: window.NetworkConfig?.MODE,
+            pageOrigin: window.location.origin || '(empty)',
+            protocol: window.location.protocol,
+        });
         const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
         const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
             ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'

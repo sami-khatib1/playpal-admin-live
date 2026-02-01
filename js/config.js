@@ -42,6 +42,14 @@ const NetworkConfig = {
 // Log configuration on load (check browser console)
 NetworkConfig.logConfig();
 
+// [LOG] Page context - this is what the browser sends as Origin in PROD debugging
+console.log('📄 [LOG] Page context (Origin sent by browser):', {
+    origin: window.location.origin || '(empty)',
+    href: window.location.href,
+    protocol: window.location.protocol,
+    isFileProtocol: window.location.protocol === 'file:',
+});
+
 // Make it available globally
 window.NetworkConfig = NetworkConfig;
 
