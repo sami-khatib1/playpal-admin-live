@@ -108,7 +108,11 @@ async function login(email, password) {
         console.error('   Error type:', error.name);
         console.error('   Error message:', error.message);
         console.error('   API_BASE_URL:', API_BASE_URL);
-        return { success: false, error: `Network error: ${error.message}. Please check if the backend is running on ${API_BASE_URL}` };
+        const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
+        const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
+            ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'
+            : ' Ensure the backend is running and CORS allows this origin.';
+        return { success: false, error: `Network error: ${error.message}.${hint}` };
     }
 }
 
@@ -157,7 +161,11 @@ async function signup(email, password, name) {
         console.error('   Error type:', error.name);
         console.error('   Error message:', error.message);
         console.error('   API_BASE_URL:', API_BASE_URL);
-        return { success: false, error: `Network error: ${error.message}. Please check if the backend is running on ${API_BASE_URL}` };
+        const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
+        const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
+            ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'
+            : ' Ensure the backend is running and CORS allows this origin.';
+        return { success: false, error: `Network error: ${error.message}.${hint}` };
     }
 }
 
