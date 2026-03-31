@@ -19,6 +19,7 @@ function navigate(path) {
         '/venue-requests': 'venue-requests.html',
         '/default-images': 'default-images.html',
         '/announcements': 'announcements.html',
+        '/help-us': 'help-us.html',
     };
     
     // Get the target page filename
