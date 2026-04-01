@@ -20,6 +20,7 @@ function navigate(path) {
         '/default-images': 'default-images.html',
         '/announcements': 'announcements.html',
         '/help-us': 'help-us.html',
+        '/analytics': 'analytics.html',
     };
     
     // Get the target page filename
