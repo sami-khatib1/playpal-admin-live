@@ -68,12 +68,35 @@ function renderRows(items) {
         const tr = document.createElement("tr");
         const created = item.createdAt ? new Date(item.createdAt).toLocaleString() : "";
         const priority = String(item.priority || "medium").toLowerCase();
+        // userName: from API after user lookup (name / username / email). If the key is missing, the
+        // server is older — show userId again. If key exists but null, user row not found in DB.
+        const hasUserNameKey = Object.prototype.hasOwnProperty.call(item, "userName");
+        const resolvedName =
+            hasUserNameKey &&
+            item.userName != null &&
+            String(item.userName).trim() !== ""
+                ? String(item.userName).trim()
+                : null;
+        let userCellHtml;
+        let userTitle = "";
+        if (resolvedName) {
+            userTitle = item.userId ? escapeHtml(item.userId) : "";
+            userCellHtml = escapeHtml(resolvedName);
+        } else if (!item.userId) {
+            userCellHtml = "Anonymous";
+        } else if (!hasUserNameKey) {
+            userCellHtml = escapeHtml(item.userId);
+            userTitle = "";
+        } else {
+            userTitle = escapeHtml(item.userId);
+            userCellHtml = `<span class="muted">Unknown user</span>`;
+        }
         tr.innerHTML =
             `<td>${escapeHtml(created)}</td>` +
             `<td><span class="pill">${escapeHtml(item.type)}</span></td>` +
             `<td><span class="pill">${escapeHtml(item.screen)}</span></td>` +
             `<td><span class="pill pill-${escapeHtml(priority)}">${escapeHtml(item.priority)}</span></td>` +
-            `<td>${escapeHtml(item.userId || "Anonymous")}</td>` +
+            `<td title="${userTitle}">${userCellHtml}</td>` +
             `<td class="message-cell">${escapeHtml(item.message || "")}</td>`;
         tbody.appendChild(tr);
     });
