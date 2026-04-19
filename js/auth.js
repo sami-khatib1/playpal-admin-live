@@ -21,6 +21,7 @@ function navigate(path) {
         '/announcements': 'announcements.html',
         '/help-us': 'help-us.html',
         '/analytics': 'analytics.html',
+        '/users': 'users.html',
     };
     
     // Get the target page filename
