@@ -23,6 +23,9 @@
         }
         .pill-deleted { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
         .toolbar { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .toolbar-filter { display: flex; align-items: center; gap: 0.5rem; }
+        .toolbar-filter label { font-size: 0.88rem; color: var(--color-text-secondary); }
+        .toolbar-filter select { min-width: 10rem; padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
         .sports-cell { max-width: 220px; white-space: normal; word-break: break-word; }
     </style>
 </head>
@@ -40,8 +43,7 @@
         <div id="error-message" class="error" style="display: none;"></div>
 
         <p class="muted" style="margin-bottom: 1rem;">
-            <strong>Last activity</strong> is <code>lastActiveAt</code> (throttled on authenticated API use, not every app open).
-            <strong>Last game</strong> is the latest scheduled <code>dateTime</code> among games where the user is a participant or creator (non-deleted games).
+            <strong>Location</strong> uses profile <code>location</code> (city, address, or coordinates). <strong>Last activity</strong> and <strong>Status</strong> use <code>lastActiveAt</code> (throttled on authenticated API use). <strong>Last game</strong> is the latest scheduled <code>dateTime</code> for games where the user is a participant or creator. <strong>Status</strong> shows the same last-active time, plus a <em>deleted</em> pill if the user is soft-deleted.
         </p>
 
         <div class="card">
@@ -51,6 +53,12 @@
             </div>
             <div class="toolbar">
                 <div id="meta" class="muted">Loading…</div>
+                <div class="toolbar-filter">
+                    <label for="sport-filter">Favorite sport</label>
+                    <select id="sport-filter" aria-label="Filter users by favorite sport">
+                        <option value="">All sports</option>
+                    </select>
+                </div>
             </div>
             <div id="loading" class="loading">Loading users…</div>
             <div id="table-wrap" class="table-wrap" style="display:none;">
@@ -60,11 +68,12 @@
                             <th>Name</th>
                             <th>Username</th>
                             <th>Email</th>
+                            <th>City</th>
                             <th>Favorite sports</th>
                             <th>Last activity</th>
                             <th>Last game</th>
                             <th>Account</th>
-                            <th>Status</th>
+                            <th>Status <span style="font-weight:400;color:var(--color-text-secondary);">(last active)</span></th>
                         </tr>
                     </thead>
                     <tbody id="users-table-body"></tbody>
