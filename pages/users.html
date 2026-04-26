@@ -49,7 +49,10 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="card-title">Directory</h2>
-                <button class="btn btn-primary" type="button" onclick="loadUsers()">Refresh</button>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" type="button" onclick="exportUsersCsv()">Export CSV</button>
+                    <button class="btn btn-primary" type="button" onclick="loadUsers()">Refresh</button>
+                </div>
             </div>
             <div class="toolbar">
                 <div id="meta" class="muted">Loading…</div>
