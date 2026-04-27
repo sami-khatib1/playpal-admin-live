@@ -24,6 +24,24 @@ function escapeAttr(str) {
 let cachedUsers = [];
 let currentFilteredUsers = [];
 
+function getLastActiveSortValue(user) {
+    const raw = user?.lastActiveAt;
+    if (raw == null) return Number.NEGATIVE_INFINITY;
+    const d = raw instanceof Date ? raw : new Date(raw);
+    const t = d.getTime();
+    return Number.isFinite(t) ? t : Number.NEGATIVE_INFINITY;
+}
+
+function sortUsersByLastActiveDesc(users) {
+    return [...users].sort((a, b) => {
+        const diff = getLastActiveSortValue(b) - getLastActiveSortValue(a);
+        if (diff !== 0) return diff;
+        return String(a?.name ?? "").localeCompare(String(b?.name ?? ""), undefined, {
+            sensitivity: "base",
+        });
+    });
+}
+
 function normalizeSportKey(s) {
     return String(s ?? "").trim().toLowerCase();
 }
@@ -98,7 +116,8 @@ function applyFavoriteSportFilter() {
     const filtered = sport
         ? cachedUsers.filter((u) => userMatchesFavoriteSportFilter(u, sport))
         : cachedUsers;
-    currentFilteredUsers = filtered;
+    const sortedFiltered = sortUsersByLastActiveDesc(filtered);
+    currentFilteredUsers = sortedFiltered;
     if (meta) {
         if (sport) {
             meta.textContent = `${filtered.length} of ${cachedUsers.length} users · favorite sport: ${sport}`;
@@ -106,7 +125,7 @@ function applyFavoriteSportFilter() {
             meta.textContent = `${cachedUsers.length} user${cachedUsers.length === 1 ? "" : "s"}`;
         }
     }
-    renderUsersRows(filtered);
+    renderUsersRows(sortedFiltered);
 }
 
 function showError(msg) {
