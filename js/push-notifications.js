@@ -212,3 +212,101 @@ window.filterTable = filterTable;
 window.selectAllVisible = selectAllVisible;
 window.clearSelection = clearSelection;
 window.sendPush = sendPush;
+
+async function sendOfficialInvites() {
+    const kind = (document.getElementById("official-kind")?.value || "game").trim();
+    const targetId = (document.getElementById("official-target-id")?.value || "").trim();
+    const ids = getSelectedIds();
+    const token = getToken();
+    const resultEl = document.getElementById("official-invite-result");
+
+    showError("");
+    showSuccess("");
+    if (resultEl) resultEl.innerHTML = "";
+
+    if (ids.length === 0) {
+        showError("Select at least one user.");
+        return;
+    }
+    if (ids.length > MAX_RECIPIENTS) {
+        showError(`Select at most ${MAX_RECIPIENTS} users per batch.`);
+        return;
+    }
+    if (!targetId) {
+        showError("Enter the game or community ID.");
+        return;
+    }
+    if (kind !== "game" && kind !== "community") {
+        showError("Invalid invite type.");
+        return;
+    }
+    if (!token) {
+        showError("Not signed in.");
+        return;
+    }
+
+    const btn = document.getElementById("btn-send-official-invites");
+    if (btn) btn.disabled = true;
+
+    try {
+        const url = `${getApiBaseUrl()}/admin/notifications/official-invites`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ kind, targetId, userIds: ids }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            const extra =
+                data.detail && typeof data.detail === "object"
+                    ? ` — ${escapeHtml(JSON.stringify(data.detail))}`
+                    : "";
+            throw new Error((data?.error || data?.message || `Request failed (${response.status})`) + extra);
+        }
+        const s = data.summary || {};
+        const inv = data.officialInviter || {};
+        const msg = `Sent ${s.sent ?? 0} · Failed ${s.failed ?? 0} (as ${inv.username || "matchn"})`;
+        showSuccess(msg);
+        if (resultEl) {
+            const lines = [];
+            if (s.skippedNotCommunityMember != null && s.skippedNotCommunityMember > 0) {
+                lines.push(`Skipped (not community member): ${s.skippedNotCommunityMember}`);
+            }
+            if (s.skippedBlocked != null && s.skippedBlocked > 0) {
+                lines.push(`Skipped (blocked): ${s.skippedBlocked}`);
+            }
+            if (s.skippedInGame != null && s.skippedInGame > 0) {
+                lines.push(`Skipped (already in game): ${s.skippedInGame}`);
+            }
+            if (s.skippedAlreadyInvited != null && s.skippedAlreadyInvited > 0) {
+                lines.push(`Skipped (already invited): ${s.skippedAlreadyInvited}`);
+            }
+            if (s.skippedAlreadyMember != null && s.skippedAlreadyMember > 0) {
+                lines.push(`Skipped (already member): ${s.skippedAlreadyMember}`);
+            }
+            if (s.skippedPendingInvite != null && s.skippedPendingInvite > 0) {
+                lines.push(`Skipped (pending invite): ${s.skippedPendingInvite}`);
+            }
+            const fails = (data.results || [])
+                .filter((r) => !r.ok)
+                .slice(0, 30)
+                .map((r) => `<li><code>${escapeHtml(r.userId)}</code> — ${escapeHtml(r.error || "failed")}</li>`)
+                .join("");
+            resultEl.innerHTML =
+                (lines.length ? `<p class="muted">${lines.join("<br/>")}</p>` : "") +
+                (fails
+                    ? `<p class="muted" style="margin-top:0.5rem;">Failures (first 30):</p><ul style="margin:0;font-size:0.85rem;">${fails}</ul>`
+                    : "");
+        }
+    } catch (e) {
+        console.error(e);
+        showError(e.message || "Send failed");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+window.sendOfficialInvites = sendOfficialInvites;
