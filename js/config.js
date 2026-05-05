@@ -12,8 +12,7 @@ const NetworkConfig = {
   LOCAL_BASE_URL: "http://localhost:3000/api",
 
   // Ngrok tunnel URL (update this when your ngrok URL changes)
-  NGROK_BASE_URL:
-    "https://jaqueline-unshirked-unhortatively.ngrok-free.dev/api",
+  NGROK_BASE_URL: "https://nydia-nondistorted-contrariously.ngrok-free.dev/api",
 
   // Production server (Google Cloud Run)
   PROD_BASE_URL: "https://playpal-api-902990494205.me-west1.run.app/api",
