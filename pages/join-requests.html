@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Requests - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .requests-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .table-wrap { overflow: auto; max-height: 70vh; }
+        .section-title { margin-bottom: 0.5rem; }
+        .section-title strong { color: var(--color-text); }
+        @media (max-width: 980px) {
+            .requests-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Join Requests</h1>
+        <div class="header-actions">
+            <span id="admin-name" style="color: var(--color-text); font-weight: 500; margin-right: 1rem;"></span>
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')">Back to Dashboard</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Games are limited to <strong>pending games only</strong> (not ended/non-pending games). Groups are limited to <strong>private communities</strong>.
+        </p>
+
+        <div class="card" style="margin-bottom: 1rem;">
+            <div class="card-header">
+                <h2 class="card-title">Overview</h2>
+                <button class="btn btn-primary" type="button" onclick="loadJoinRequests()">Refresh</button>
+            </div>
+            <div id="overview-meta" class="muted">Loading…</div>
+        </div>
+
+        <div class="requests-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Private Game Requests</h2>
+                </div>
+                <div id="games-meta" class="section-title muted">Loading…</div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Requester</th>
+                                <th>Game</th>
+                                <th>Requested</th>
+                            </tr>
+                        </thead>
+                        <tbody id="game-requests-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Private Group Requests</h2>
+                </div>
+                <div id="communities-meta" class="section-title muted">Loading…</div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Requester</th>
+                                <th>Group</th>
+                                <th>Requested</th>
+                            </tr>
+                        </thead>
+                        <tbody id="community-requests-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/join-requests.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadJoinRequests();
+        }
+    </script>
+</body>
+</html>
