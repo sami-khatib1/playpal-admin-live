@@ -23,6 +23,8 @@ function navigate(path) {
         '/analytics': 'analytics.html',
         '/users': 'users.html',
         '/push-notifications': 'push-notifications.html',
+        '/availability': 'availability.html',
+        '/join-requests': 'join-requests.html',
     };
     
     // Get the target page filename
