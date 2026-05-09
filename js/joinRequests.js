@@ -51,6 +51,7 @@ function pickValue(obj, keys, fallback = "—") {
 function pickUserName(obj, keyCandidates) {
     for (const key of keyCandidates) {
         const user = obj?.[key];
+        if (typeof user === "string" && user.trim()) return user.trim();
         if (user && typeof user === "object") {
             const name = user.name || user.username || user.email || user.id;
             if (name) return String(name);
@@ -105,6 +106,7 @@ function normalizeResponse(data) {
     return {
         gameRequests: Array.isArray(gameRequests) ? gameRequests : [],
         groupRequests: Array.isArray(groupRequests) ? groupRequests : [],
+        counts: source.counts || null,
     };
 }
 
@@ -118,8 +120,8 @@ function applyFilters(items) {
 
         if (!search) return true;
         const haystack = [
-            pickValue(item, ["title", "gameTitle", "communityName", "groupName", "name"], ""),
-            pickUserName(item, ["requester", "user", "requestUser", "createdBy", "requesterUser"]),
+            pickValue(item, ["targetName", "title", "gameTitle", "communityName", "groupName", "name"], ""),
+            pickUserName(item, ["requesterName", "requester", "user", "requestUser", "createdBy", "requesterUser"]),
             pickUserName(item, ["creator", "gameCreator", "admin", "communityAdmin"]),
         ]
             .join(" ")
@@ -145,8 +147,8 @@ function renderGameRequests(items) {
     body.innerHTML = items
         .map((row) => `
             <tr>
-                <td>${escapeHtml(pickUserName(row, ["requester", "user", "requestUser", "createdBy", "requesterUser"]))}</td>
-                <td>${escapeHtml(pickValue(row, ["gameTitle", "title", "gameName", "name"]))}</td>
+                <td>${escapeHtml(pickUserName(row, ["requesterName", "requester", "user", "requestUser", "createdBy", "requesterUser"]))}</td>
+                <td>${escapeHtml(pickValue(row, ["targetName", "gameTitle", "title", "gameName", "name"]))}</td>
                 <td>${escapeHtml(pickUserName(row, ["creator", "gameCreator", "owner", "admin"]))}</td>
                 <td>${statusBadge(row.status)}</td>
                 <td>${escapeHtml(formatDate(pickValue(row, ["createdAt", "requestedAt"], "")))}</td>
@@ -173,8 +175,8 @@ function renderGroupRequests(items) {
     body.innerHTML = items
         .map((row) => `
             <tr>
-                <td>${escapeHtml(pickUserName(row, ["requester", "user", "requestUser", "createdBy", "requesterUser"]))}</td>
-                <td>${escapeHtml(pickValue(row, ["communityName", "groupName", "title", "name"]))}</td>
+                <td>${escapeHtml(pickUserName(row, ["requesterName", "requester", "user", "requestUser", "createdBy", "requesterUser"]))}</td>
+                <td>${escapeHtml(pickValue(row, ["targetName", "communityName", "groupName", "title", "name"]))}</td>
                 <td>${escapeHtml(pickUserName(row, ["admin", "communityAdmin", "creator", "owner"]))}</td>
                 <td>${statusBadge(row.status)}</td>
                 <td>${escapeHtml(formatDate(pickValue(row, ["createdAt", "requestedAt"], "")))}</td>
@@ -234,7 +236,7 @@ async function loadJoinRequests() {
     if (meta) meta.textContent = "Loading...";
 
     try {
-        const { gameRequests, groupRequests } = await fetchJoinRequests();
+        const { gameRequests, groupRequests, counts } = await fetchJoinRequests();
         const filteredGames = applyFilters(gameRequests);
         const filteredGroups = applyFilters(groupRequests);
 
@@ -243,7 +245,11 @@ async function loadJoinRequests() {
 
         const total = filteredGames.length + filteredGroups.length;
         if (meta) {
-            meta.textContent = `${total} request${total === 1 ? "" : "s"} · ${filteredGames.length} games · ${filteredGroups.length} groups`;
+            const apiLine =
+                counts && typeof counts.total === "number"
+                    ? `API pending: ${counts.total} (${counts.game ?? 0} game · ${counts.community ?? 0} group) · `
+                    : "";
+            meta.textContent = `${apiLine}${total} shown · ${filteredGames.length} games · ${filteredGroups.length} groups`;
         }
         if (loading) loading.style.display = "none";
         if (content) content.style.display = "grid";

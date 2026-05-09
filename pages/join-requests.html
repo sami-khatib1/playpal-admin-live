@@ -16,6 +16,7 @@
         .table-wrap { overflow:auto; max-height:58vh; }
         .muted { color:var(--color-text-secondary); font-size:.88rem; }
         .section-title { margin: .25rem 0 .75rem; font-size: 1.02rem; font-weight: 700; color: var(--color-text); }
+        .section-title strong { color: var(--color-text); }
         .stack { display:grid; gap:1rem; }
         .empty-note { padding: .8rem; border:1px dashed var(--color-border); border-radius: 10px; color: var(--color-text-secondary); font-size:.88rem; }
     </style>
@@ -33,7 +34,8 @@
     <div class="container">
         <div id="error-message" class="error" style="display:none;"></div>
         <p class="muted" style="margin-bottom:1rem;">
-            Read-only feed of private join requests. Uses your admin endpoint and splits results into private games and private groups.
+            Private <strong>game</strong> rows are limited to pending games (non-ended). Private <strong>group</strong> rows are limited to private communities.
+            Read-only feed from the admin API — split into games and groups below.
         </p>
 
         <div class="card">
