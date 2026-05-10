@@ -25,13 +25,13 @@
     <div class="container">
         <div id="error-message" class="error" style="display:none;"></div>
         <p class="muted" style="margin-bottom: 1rem;">
-            Photos submitted by <strong>group admins</strong> from the community detail screen. Approve to show them in the app carousel; use this queue for social/marketing hand-off too.
+            Photos submitted by <strong>group admins</strong> from the community screen. Download here for Matchn social posts (e.g. Instagram). Submissions are not shown as a gallery inside the app.
         </p>
 
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Pending submissions</h2>
-                <button class="btn btn-primary" onclick="loadPending()">Refresh</button>
+                <h2 class="card-title">Submissions</h2>
+                <button class="btn btn-primary" onclick="loadSubmissions()">Refresh</button>
             </div>
             <div id="meta" class="muted" style="margin: .5rem 0;">Loading…</div>
             <div id="loading" class="loading">Loading…</div>
@@ -39,12 +39,12 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Preview</th>
+                            <th>Photo</th>
                             <th>Group</th>
                             <th>Sport</th>
                             <th>Uploaded by</th>
                             <th>Submitted</th>
-                            <th>Actions</th>
+                            <th>Download</th>
                         </tr>
                     </thead>
                     <tbody id="table-body"></tbody>
@@ -66,7 +66,7 @@
             if (admin) {
                 document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
             }
-            loadPending();
+            loadSubmissions();
         }
     </script>
 </body>

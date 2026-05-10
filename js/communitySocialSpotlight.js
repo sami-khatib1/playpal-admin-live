@@ -30,7 +30,7 @@ function formatDate(value) {
     return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }
 
-async function loadPending() {
+async function loadSubmissions() {
     showError("");
     const loading = document.getElementById("loading");
     const wrap = document.getElementById("table-wrap");
@@ -47,7 +47,7 @@ async function loadPending() {
 
     try {
         const res = await fetch(
-            `${getApiBaseUrl()}/admin/community-social-spotlight/pending`,
+            `${getApiBaseUrl()}/admin/community-social-spotlight/submissions`,
             {
                 headers: {
                     Authorization: "Bearer " + token,
@@ -62,15 +62,15 @@ async function loadPending() {
         const submissions = Array.isArray(data.submissions) ? data.submissions : [];
         meta.textContent =
             submissions.length === 0
-                ? "No pending spotlight photos."
-                : submissions.length + " pending submission(s).";
+                ? "No submissions yet."
+                : submissions.length + " submission(s).";
 
         if (loading) loading.style.display = "none";
         if (wrap) wrap.style.display = "block";
 
         if (submissions.length === 0) {
             tbody.innerHTML =
-                '<tr><td colspan="6" class="muted">Nothing pending — group admins submit from the community screen.</td></tr>';
+                '<tr><td colspan="6" class="muted">Nothing yet — group admins submit from the community screen.</td></tr>';
             return;
         }
 
@@ -84,16 +84,19 @@ async function loadPending() {
             const thumb = row.imageUrl
                 ? `<img src="${escapeHtml(row.imageUrl)}" alt="" style="max-height:72px;border-radius:8px;" />`
                 : escapeHtml(row.objectPath || "");
+            const downloadUrl = escapeHtml(row.imageUrl || "");
+            const safeId = escapeHtml(row.id || "");
+            const downloadBtn = downloadUrl
+                ? `<a href="${downloadUrl}" download="matchn-spotlight-${safeId}.jpg" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Download</a>
+                   <p class="muted" style="margin:.35rem 0 0;font-size:.75rem;">If the file opens instead of saving, use your browser’s Save or Share menu.</p>`
+                : `<span class="muted">No URL</span>`;
             tr.innerHTML = `
                 <td>${thumb}</td>
                 <td>${groupName}</td>
                 <td>${sport}</td>
                 <td>${who}</td>
                 <td>${formatDate(row.createdAt)}</td>
-                <td>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="approveSubmission('${escapeHtml(row.id)}')">Approve</button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="rejectSubmission('${escapeHtml(row.id)}')">Reject</button>
-                </td>
+                <td>${downloadBtn}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -102,50 +105,5 @@ async function loadPending() {
         if (wrap) wrap.style.display = "block";
         meta.textContent = "";
         showError(e.message || "Failed to load");
-    }
-}
-
-async function approveSubmission(submissionId) {
-    const token = getToken();
-    if (!confirm("Approve this photo for in-app community spotlight?")) return;
-    try {
-        const res = await fetch(
-            `${getApiBaseUrl()}/admin/community-social-spotlight/${submissionId}/approve`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: "Bearer " + token,
-                    Accept: "application/json",
-                },
-            },
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Approve failed");
-        await loadPending();
-    } catch (e) {
-        alert(e.message || "Approve failed");
-    }
-}
-
-async function rejectSubmission(submissionId) {
-    const token = getToken();
-    if (!confirm("Reject this submission? It will not appear in the app."))
-        return;
-    try {
-        const res = await fetch(
-            `${getApiBaseUrl()}/admin/community-social-spotlight/${submissionId}/reject`,
-            {
-                method: "PUT",
-                headers: {
-                    Authorization: "Bearer " + token,
-                    Accept: "application/json",
-                },
-            },
-        );
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || "Reject failed");
-        await loadPending();
-    } catch (e) {
-        alert(e.message || "Reject failed");
     }
 }
