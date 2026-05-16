@@ -22,6 +22,7 @@ function navigate(path) {
         '/help-us': 'help-us.html',
         '/analytics': 'analytics.html',
         '/users': 'users.html',
+        '/user-activation': 'user-activation.html',
         '/push-notifications': 'push-notifications.html',
         '/availability': 'availability.html',
         '/join-requests': 'join-requests.html',
