@@ -20,6 +20,7 @@ function navigate(path) {
         '/default-images': 'default-images.html',
         '/announcements': 'announcements.html',
         '/help-us': 'help-us.html',
+        '/activity-demands': 'activity-demands.html',
         '/analytics': 'analytics.html',
         '/users': 'users.html',
         '/user-activation': 'user-activation.html',
