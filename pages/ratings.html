@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ratings - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+        .toolbar-group { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+        .toolbar input {
+            padding:.45rem .55rem; border:1px solid var(--color-border); border-radius:8px;
+            background:var(--color-surface); color:var(--color-text); min-width: 11rem;
+        }
+        .toolbar label { font-size: 0.88rem; color: var(--color-text-secondary); }
+        .table-wrap { overflow:auto; max-height: 72vh; }
+        .muted { color:var(--color-text-secondary); font-size:.88rem; }
+        .stars-cell { white-space: nowrap; letter-spacing: 0.05em; }
+        .empty-note { padding: .8rem; border:1px dashed var(--color-border); border-radius: 10px; color: var(--color-text-secondary); font-size:.88rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Sport Ratings</h1>
+        <div class="header-actions">
+            <span id="admin-name" style="color: var(--color-text); font-weight: 500; margin-right: 1rem;"></span>
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')">Back to Dashboard</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom:1rem;">
+            Player-to-player sport rankings after games. By default shows the <strong>last 30</strong> ratings.
+            Use <strong>Rater</strong> to find ratings a user gave; use <strong>Got rated</strong> to find ratings they received.
+            Search matches username or display name (partial, case-insensitive).
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Ratings</h2>
+                <button class="btn btn-primary" type="button" onclick="loadRatings()">Refresh</button>
+            </div>
+            <div class="toolbar">
+                <div id="meta" class="muted">Loading…</div>
+                <div class="toolbar-group">
+                    <label for="rater-filter">Rater</label>
+                    <input id="rater-filter" type="text" placeholder="Who rated…" aria-label="Filter by rater username or name" />
+                    <label for="rated-filter">Got rated</label>
+                    <input id="rated-filter" type="text" placeholder="Who got rated…" aria-label="Filter by rated user username or name" />
+                    <button class="btn btn-secondary" type="button" onclick="loadRatings()">Search</button>
+                    <button class="btn btn-secondary" type="button" onclick="clearRatingsFilters()">Clear</button>
+                </div>
+            </div>
+            <div id="loading" class="loading">Loading ratings…</div>
+            <div id="empty-note" class="empty-note" style="display:none;">No ratings found for this search.</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Rater</th>
+                            <th>Got rated</th>
+                            <th>Stars</th>
+                            <th>Sport</th>
+                            <th>When</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ratings-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/ratings.js"></script>
+    <script>
+        function clearRatingsFilters() {
+            const rater = document.getElementById("rater-filter");
+            const rated = document.getElementById("rated-filter");
+            if (rater) rater.value = "";
+            if (rated) rated.value = "";
+            loadRatings();
+        }
+
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            bindRatingsFilters();
+            loadRatings();
+        }
+    </script>
+</body>
+</html>

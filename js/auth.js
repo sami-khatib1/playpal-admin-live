@@ -27,6 +27,7 @@ function navigate(path) {
         '/push-notifications': 'push-notifications.html',
         '/availability': 'availability.html',
         '/join-requests': 'join-requests.html',
+        '/ratings': 'ratings.html',
         '/community-social-spotlight': 'community-social-spotlight.html',
     };
     
