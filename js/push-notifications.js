@@ -7,7 +7,7 @@ function getToken() {
 }
 
 /** Must match backend default cap (ADMIN_PUSH_MAX_RECIPIENTS env override). */
-const MAX_RECIPIENTS = 200;
+const MAX_RECIPIENTS = 500;
 
 function escapeHtml(str) {
     const div = document.createElement("div");
@@ -119,10 +119,14 @@ async function loadUsersForPicker() {
 }
 
 function selectAllVisible() {
+    const hiddenChecked = document.querySelectorAll("#user-picker-body tr[data-user-row].row-hidden .user-check:checked").length;
     const boxes = document.querySelectorAll("#user-picker-body tr[data-user-row]:not(.row-hidden) .user-check");
-    let count = 0;
+    let count = hiddenChecked;
     boxes.forEach((cb) => {
-        if (count >= MAX_RECIPIENTS) return;
+        if (count >= MAX_RECIPIENTS) {
+            cb.checked = false;
+            return;
+        }
         cb.checked = true;
         count++;
     });
