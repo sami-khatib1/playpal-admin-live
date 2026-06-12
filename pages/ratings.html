@@ -33,7 +33,7 @@
     <div class="container">
         <div id="error-message" class="error" style="display:none;"></div>
         <p class="muted" style="margin-bottom:1rem;">
-            Player-to-player sport rankings after games. By default shows the <strong>last 30</strong> ratings.
+            Player-to-player sport rankings after games (excludes <strong>Other</strong>, which has no ranking system). By default shows the <strong>last 30</strong> ratings.
             Use <strong>Rater</strong> to find ratings a user gave; use <strong>Got rated</strong> to find ratings they received.
             Search matches username or display name (partial, case-insensitive).
         </p>
@@ -77,6 +77,7 @@
     <script src="../js/dbTarget.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/app.js"></script>
+    <script src="../js/sportLabels.js"></script>
     <script src="../js/ratings.js"></script>
     <script>
         function clearRatingsFilters() {

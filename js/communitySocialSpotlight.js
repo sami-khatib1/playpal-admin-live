@@ -77,7 +77,10 @@ async function loadSubmissions() {
         submissions.forEach((row) => {
             const tr = document.createElement("tr");
             const groupName = escapeHtml(row.community?.name || "—");
-            const sport = escapeHtml(row.community?.sport || "—");
+            const rawSport = row.community?.sport || "";
+            const sport = escapeHtml(
+                window.AdminSportLabels?.sportSlugToDisplayLabel(rawSport) || rawSport || "—",
+            );
             const who = escapeHtml(
                 row.uploadedBy?.name || row.uploadedBy?.username || "—",
             );

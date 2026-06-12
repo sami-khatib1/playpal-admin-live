@@ -21,9 +21,15 @@ function escapeHtml(str) {
 
 function formatSportList(item) {
     if (Array.isArray(item.sportTypes) && item.sportTypes.length > 0) {
+        if (window.AdminSportLabels?.formatSportSlugList) {
+            return window.AdminSportLabels.formatSportSlugList(item.sportTypes);
+        }
         return item.sportTypes.join(", ");
     }
     const raw = item.sportType || "";
+    if (window.AdminSportLabels?.formatSportListText) {
+        return window.AdminSportLabels.formatSportListText(raw);
+    }
     if (!raw) return "—";
     return raw.includes(",") ? raw.split(",").map((s) => s.trim()).join(", ") : raw;
 }

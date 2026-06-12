@@ -52,7 +52,11 @@ function renderRows(votes) {
         .map((row) => `
             <tr>
                 <td>${escapeHtml(row.city || "—")}</td>
-                <td>${escapeHtml(row.sportType || "—")}</td>
+                <td>${escapeHtml(
+                    window.AdminSportLabels?.sportSlugToDisplayLabel(row.sportType) ||
+                        row.sportType ||
+                        "—",
+                )}</td>
                 <td>${escapeHtml(dayLabel(row.dayOfWeek))}</td>
                 <td>${escapeHtml(timeLabel(row.timeSection))}</td>
                 <td>${escapeHtml(row.votesCount ?? 0)}</td>

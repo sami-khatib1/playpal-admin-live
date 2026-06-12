@@ -96,7 +96,11 @@ function renderRows(items) {
                 <td>${formatUserCell(row.raterUsername, row.raterName)}</td>
                 <td>${formatUserCell(row.ratedUsername, row.ratedName)}</td>
                 <td class="stars-cell">${escapeHtml(formatStars(row.rating))}</td>
-                <td>${escapeHtml(row.sportType || "—")}</td>
+                <td>${escapeHtml(
+                    window.AdminSportLabels?.sportSlugToDisplayLabel(row.sportType) ||
+                        row.sportType ||
+                        "—",
+                )}</td>
                 <td>${formatDate(row.createdAt)}</td>
             </tr>
         `,

@@ -174,6 +174,10 @@ function createImageCard(image) {
     return card;
 }
 
+function sportLabel(slug) {
+    return window.AdminSportLabels?.sportSlugToDisplayLabel(slug) || slug;
+}
+
 // Get display name for image
 function getImageDisplayName(image) {
     if (image.id === 'users-default') {
@@ -183,15 +187,15 @@ function getImageDisplayName(image) {
     } else if (image.id.startsWith('venues-')) {
         const sportType = image.id.replace('venues-', '');
         if (sportType === 'default') {
-            return 'Venue Default (Generic)';
+            return 'Venue Default (Generic — also used for Other)';
         }
-        return `Venue Default (${sportType.charAt(0).toUpperCase() + sportType.slice(1)})`;
+        return `Venue Default (${sportLabel(sportType)})`;
     } else if (image.id.startsWith('communities-')) {
         const sportType = image.id.replace('communities-', '');
         if (sportType === 'default') {
-            return 'Community Default (Generic)';
+            return 'Community Default (Generic — also used for Other)';
         }
-        return `Community Default (${sportType.charAt(0).toUpperCase() + sportType.slice(1)})`;
+        return `Community Default (${sportLabel(sportType)})`;
     }
     return image.id;
 }

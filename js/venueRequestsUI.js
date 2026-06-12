@@ -2,6 +2,19 @@
 
 let allRequests = [];
 
+function formatVenueSportLabel(sport) {
+    const raw = typeof sport === "string" ? sport : sport?.sport || "";
+    return window.AdminSportLabels?.sportSlugToDisplayLabel(raw) || raw || "";
+}
+
+function formatVenueSportsList(sports) {
+    if (!sports || sports.length === 0) return "None";
+    return sports
+        .map((s) => formatVenueSportLabel(s))
+        .filter(Boolean)
+        .join(", ");
+}
+
 // Load and display venue requests
 async function loadVenueRequests() {
     console.log('🚀 [Venue Requests UI] loadVenueRequests called');
@@ -57,9 +70,7 @@ function renderRequestsTable(requests) {
             `${request.location.address || ''}, ${request.location.city || ''}`.trim() : 
             'N/A';
         
-        const sportsText = request.sports && request.sports.length > 0 ?
-            request.sports.map(s => s.sport || s).join(', ') : 
-            'None';
+        const sportsText = formatVenueSportsList(request.sports);
         
         const submittedDate = request.createdAt ? 
             new Date(request.createdAt).toLocaleDateString() : 
@@ -218,7 +229,7 @@ async function renderRequestDetails(request) {
             <div class="request-detail-label">Sports:</div>
             <div class="request-detail-value">
                 ${request.sports && request.sports.length > 0 ? 
-                    request.sports.map(s => `<span class="badge badge-pending">${s.sport || s}</span>`).join(' ') : 
+                    request.sports.map(s => `<span class="badge badge-pending">${formatVenueSportLabel(s)}</span>`).join(' ') : 
                     'None'}
             </div>
         </div>

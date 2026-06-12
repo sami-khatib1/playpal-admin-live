@@ -55,21 +55,18 @@ function userMatchesFavoriteSportFilter(user, selectedSport) {
 }
 
 function collectSportsFromUsers(users) {
-    const seen = new Set();
-    const ordered = [];
+    const fromUsers = [];
     for (const u of users) {
         if (!Array.isArray(u.favoriteSports)) continue;
         for (const s of u.favoriteSports) {
             const raw = String(s).trim();
-            if (!raw) continue;
-            const key = normalizeSportKey(raw);
-            if (seen.has(key)) continue;
-            seen.add(key);
-            ordered.push(raw);
+            if (raw) fromUsers.push(raw);
         }
     }
-    ordered.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-    return ordered;
+    if (window.AdminSportLabels?.mergeSportOptions) {
+        return window.AdminSportLabels.mergeSportOptions(fromUsers);
+    }
+    return fromUsers;
 }
 
 function populateSportFilterOptions(users) {
@@ -80,10 +77,10 @@ function populateSportFilterOptions(users) {
     sel.innerHTML =
         '<option value="">All sports</option>' +
         sports
-            .map(
-                (s) =>
-                    `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`
-            )
+            .map((s) => {
+                const label = window.AdminSportLabels?.sportSlugToDisplayLabel(s) || s;
+                return `<option value="${escapeAttr(s)}">${escapeHtml(label)}</option>`;
+            })
             .join("");
     const stillValid = prev === "" || sports.some((s) => s === prev);
     sel.value = stillValid ? prev : "";
@@ -120,7 +117,9 @@ function applyFavoriteSportFilter() {
     currentFilteredUsers = sortedFiltered;
     if (meta) {
         if (sport) {
-            meta.textContent = `${filtered.length} of ${cachedUsers.length} users · favorite sport: ${sport}`;
+            const sportLabel =
+                window.AdminSportLabels?.sportSlugToDisplayLabel(sport) || sport;
+            meta.textContent = `${filtered.length} of ${cachedUsers.length} users · favorite sport: ${sportLabel}`;
         } else {
             meta.textContent = `${cachedUsers.length} user${cachedUsers.length === 1 ? "" : "s"}`;
         }
@@ -154,6 +153,9 @@ function formatDateOnly(d) {
 }
 
 function formatSports(arr) {
+    if (window.AdminSportLabels?.formatSportSlugList) {
+        return window.AdminSportLabels.formatSportSlugList(arr);
+    }
     if (!Array.isArray(arr) || arr.length === 0) return "—";
     return arr.map((s) => String(s).trim()).filter(Boolean).join(", ");
 }
