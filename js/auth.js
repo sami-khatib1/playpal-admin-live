@@ -14,7 +14,6 @@ if (window.NetworkConfig) {
 function navigate(path) {
     const pathMap = {
         '/login': 'login.html',
-        '/signup': 'signup.html',
         '/dashboard': 'dashboard.html',
         '/venue-requests': 'venue-requests.html',
         '/default-images': 'default-images.html',
@@ -77,6 +76,12 @@ function navigate(path) {
 // Make navigate available globally
 window.navigate = navigate;
 
+function isAllowedAdminEmail(email) {
+    const normalized = String(email || '').toLowerCase().trim();
+    const local = normalized.split('@')[0] || '';
+    return local.startsWith('sami') || local.startsWith('yousef');
+}
+
 // Login function
 async function login(email, password) {
     // [LOG] Before request - context for PROD debugging
@@ -89,6 +94,13 @@ async function login(email, password) {
         protocol: window.location.protocol,
         isFile: window.location.protocol === 'file:',
     });
+
+    if (!isAllowedAdminEmail(email)) {
+        return {
+            success: false,
+            error: 'This email is not authorized for admin access',
+        };
+    }
 
     try {
         const response = await fetch(loginUrl, {
@@ -150,59 +162,6 @@ async function login(email, password) {
             pageOrigin: window.location.origin || '(empty)',
             protocol: window.location.protocol,
         });
-        const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
-        const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
-            ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'
-            : ' Ensure the backend is running and CORS allows this origin.';
-        return { success: false, error: `Network error: ${error.message}.${hint}` };
-    }
-}
-
-// Signup function
-async function signup(email, password, name) {
-    try {
-        const url = `${API_BASE_URL}/admin/auth/signup`;
-        console.log('🔐 Attempting signup to:', url);
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password, name }),
-        });
-
-        console.log('📡 Response status:', response.status);
-        
-        // Check if response is ok before trying to parse JSON
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Response error:', errorText);
-            try {
-                const errorData = JSON.parse(errorText);
-                return { success: false, error: errorData.message || errorData.error || 'Signup failed' };
-            } catch {
-                return { success: false, error: `Server error: ${response.status} ${response.statusText}` };
-            }
-        }
-
-        const data = await response.json();
-        console.log('✅ Signup response:', data);
-
-        if (data.success) {
-            // Store token
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('adminUser', JSON.stringify(data.user || { email, name }));
-            
-            return { success: true };
-        } else {
-            return { success: false, error: data.message || data.error || 'Signup failed' };
-        }
-    } catch (error) {
-        console.error('❌ Signup error:', error);
-        console.error('   Error type:', error.name);
-        console.error('   Error message:', error.message);
-        console.error('   API_BASE_URL:', API_BASE_URL);
         const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
         const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
             ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'

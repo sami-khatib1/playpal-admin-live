@@ -5,7 +5,6 @@
 function navigate(path) {
     const pathMap = {
         '/login': 'login.html',
-        '/signup': 'signup.html',
         '/dashboard': 'dashboard.html',
         '/venue-requests': 'venue-requests.html',
         '/default-images': 'default-images.html',
