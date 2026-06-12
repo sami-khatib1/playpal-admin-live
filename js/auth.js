@@ -163,8 +163,9 @@ async function login(email, password) {
             protocol: window.location.protocol,
         });
         const isCorsOrNetwork = (error.message || '').toLowerCase().includes('fetch') || (error.name || '') === 'TypeError';
+        const pageOrigin = window.location.origin || '';
         const hint = window.NetworkConfig?.MODE === 'PROD' && isCorsOrNetwork
-            ? ' Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "null" (see backend server.js).'
+            ? ` Backend is reachable; this is usually CORS. Redeploy the backend with CORS allowing origin "${pageOrigin || 'your dashboard host'}" (see backend server.js).`
             : ' Ensure the backend is running and CORS allows this origin.';
         return { success: false, error: `Network error: ${error.message}.${hint}` };
     }
