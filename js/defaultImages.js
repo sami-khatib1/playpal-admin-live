@@ -187,13 +187,13 @@ function getImageDisplayName(image) {
     } else if (image.id.startsWith('venues-')) {
         const sportType = image.id.replace('venues-', '');
         if (sportType === 'default') {
-            return 'Venue Default (Generic — also used for Other)';
+            return 'Venue Default (Generic)';
         }
         return `Venue Default (${sportLabel(sportType)})`;
     } else if (image.id.startsWith('communities-')) {
         const sportType = image.id.replace('communities-', '');
         if (sportType === 'default') {
-            return 'Community Default (Generic — also used for Other)';
+            return 'Community Default (Generic)';
         }
         return `Community Default (${sportLabel(sportType)})`;
     }
