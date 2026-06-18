@@ -24,6 +24,7 @@ function navigate(path) {
         '/users': 'users.html',
         '/user-activation': 'user-activation.html',
         '/push-notifications': 'push-notifications.html',
+        '/group-discovery-push': 'group-discovery-push.html',
         '/availability': 'availability.html',
         '/join-requests': 'join-requests.html',
         '/ratings': 'ratings.html',
