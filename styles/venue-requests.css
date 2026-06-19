@@ -56,24 +56,24 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.75rem;
-    border-bottom: 1px solid var(--color-border);
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-    border-radius: 16px 16px 0 0;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .modal-header h3 {
     margin: 0;
-    font-size: 1.25rem;
-    color: var(--color-text);
-    font-weight: 600;
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: 700;
 }
 
 .modal-close {
-    background: none;
+    background: rgba(255, 255, 255, 0.15);
     border: none;
-    font-size: 1.5rem;
-    color: var(--color-text-secondary);
+    font-size: 1.35rem;
+    color: #fff;
     cursor: pointer;
     padding: 0;
     width: 32px;
