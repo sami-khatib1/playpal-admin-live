@@ -22,6 +22,15 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function getErrorMessage(data, defaultMsg) {
+    defaultMsg = defaultMsg || "Request failed";
+    if (!data) return defaultMsg;
+    if (typeof data.error === "string") return data.error;
+    if (data.error && typeof data.error.message === "string") return data.error.message;
+    if (typeof data.message === "string") return data.message;
+    return defaultMsg;
+}
+
 function showError(msg) {
     const el = document.getElementById("error-message");
     const ok = document.getElementById("success-message");
@@ -186,7 +195,7 @@ async function loadContacts() {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) {
-            throw new Error(data?.error || `Request failed (${response.status})`);
+            throw new Error(getErrorMessage(data, `Request failed (${response.status})`));
         }
         allContacts = data.data || [];
         renderContactList();
@@ -233,7 +242,7 @@ async function createContact() {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) {
-            throw new Error(data?.error || "Create failed");
+            throw new Error(getErrorMessage(data, "Create failed"));
         }
         document.getElementById("add-name").value = "";
         document.getElementById("add-phone").value = "";
@@ -262,7 +271,7 @@ async function updateContactStatus(id, status) {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) {
-            throw new Error(data?.error || "Update failed");
+            throw new Error(getErrorMessage(data, "Update failed"));
         }
         const idx = allContacts.findIndex((c) => c.id === id);
         if (idx >= 0 && data.data) allContacts[idx] = data.data;
@@ -284,7 +293,7 @@ async function deleteContact(id) {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) {
-            throw new Error(data?.error || "Delete failed");
+            throw new Error(getErrorMessage(data, "Delete failed"));
         }
         allContacts = allContacts.filter((c) => c.id !== id);
         renderContactList();
