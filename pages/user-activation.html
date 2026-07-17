@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>User activation - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .kpi-tile {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .kpi-tile:hover { border-color: var(--color-primary); }
+        .kpi-tile.active {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(45, 90, 61, 0.2);
+        }
+        .kpi-tile .label {
+            font-size: 0.72rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .kpi-tile .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-top: 0.25rem;
+        }
+        .kpi-tile .pct {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.15rem;
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .toolbar-filter {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toolbar-filter label { font-size: 0.88rem; color: var(--color-text-secondary); }
+        .toolbar-filter select {
+            min-width: 12rem;
+            padding: 0.35rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
+        .table-wrap { overflow: auto; max-height: 62vh; }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .pill {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+        }
+        .pill-both { background: #dcfce7; border-color: #86efac; color: #166534; }
+        .pill-community_only { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+        .pill-game_only { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+        .pill-neither { background: #f3f4f6; border-color: #d1d5db; color: #4b5563; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>User activation</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            <strong>Community</strong> = member of at least one group (<code>community_members</code>).
+            <strong>Game activity</strong> = creator or participant on a non-deleted game.
+            Soft-deleted accounts are excluded. Click a tile to filter the table.
+        </p>
+
+        <div class="card" style="margin-bottom: 1rem;">
+            <div class="card-header">
+                <h2 class="card-title">Segments</h2>
+                <button class="btn btn-primary" type="button" onclick="loadUserActivation()">Refresh</button>
+            </div>
+            <div id="segment-kpis" class="kpi-grid">Loading…</div>
+            <p id="summary-meta" class="muted" style="margin-top: 0.5rem;"></p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Users</h2>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button class="btn btn-secondary" type="button" onclick="exportActivationCsv()">Export CSV</button>
+                    <button class="btn btn-primary" type="button" onclick="loadUserActivation()">Refresh</button>
+                </div>
+            </div>
+            <div class="toolbar">
+                <div id="meta" class="muted">Loading…</div>
+                <div class="toolbar-filter">
+                    <label for="segment-filter">Segment</label>
+                    <select id="segment-filter" aria-label="Filter by activation segment">
+                        <option value="">All segments</option>
+                        <option value="both">Both (community + game)</option>
+                        <option value="community_only">Community only</option>
+                        <option value="game_only">Game only</option>
+                        <option value="neither">Neither</option>
+                    </select>
+                </div>
+            </div>
+            <div id="loading" class="loading">Loading…</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Segment</th>
+                            <th>Communities</th>
+                            <th>Joined games (counter)</th>
+                            <th>Last activity</th>
+                            <th>Last game</th>
+                            <th>Account</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activation-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/userActivation.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadUserActivation();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Availability - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+        .toolbar-group { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+        .toolbar input, .toolbar select {
+            padding:.45rem .55rem; border:1px solid var(--color-border); border-radius:8px;
+            background:var(--color-surface); color:var(--color-text);
+        }
+        .table-wrap { overflow:auto; max-height:72vh; }
+        .muted { color:var(--color-text-secondary); font-size:.88rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Availability Demand</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom:1rem;">
+            Read-only demand monitor for Availability votes. Data is grouped by city + sport + day + time section.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Clusters</h2>
+                <button class="btn btn-primary" onclick="loadAvailability()">Refresh</button>
+            </div>
+            <div class="toolbar">
+                <div id="meta" class="muted">Loading...</div>
+                <div class="toolbar-group">
+                    <input id="city-filter" type="text" placeholder="City (e.g. haifa)" />
+                    <input id="sport-filter" type="text" placeholder="Sport (e.g. volleyball)" />
+                    <select id="day-filter" aria-label="Filter by day">
+                        <option value="">All days</option>
+                        <option value="0">Sun</option>
+                        <option value="1">Mon</option>
+                        <option value="2">Tue</option>
+                        <option value="3">Wed</option>
+                        <option value="4">Thu</option>
+                        <option value="5">Fri</option>
+                        <option value="6">Sat</option>
+                    </select>
+                    <select id="time-filter" aria-label="Filter by time section">
+                        <option value="">All times</option>
+                        <option value="morning">Morning</option>
+                        <option value="noon">Noon</option>
+                        <option value="evening">Evening</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadAvailability()">Apply</button>
+                </div>
+            </div>
+            <div id="loading" class="loading">Loading availability clusters…</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>City</th>
+                            <th>Sport</th>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Votes</th>
+                            <th>Organizers</th>
+                            <th>Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="availability-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/availability.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadAvailability();
+        }
+    </script>
+</body>
+</html>

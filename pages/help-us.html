@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Help Us Feedback - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .filters .form-input { width: 100%; }
+        .table-wrap {
+            overflow: auto;
+            max-height: 70vh;
+        }
+        .message-cell {
+            max-width: 440px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .pill {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+        }
+        .pill-high { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+        .pill-medium { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+        .pill-low { background: #dcfce7; border-color: #86efac; color: #166534; }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.9rem; }
+        .actions-inline { display: flex; gap: 0.5rem; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Help Us Feedback</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Feedback Table</h2>
+                <button class="btn btn-primary" onclick="loadHelpUsFeedback()">Refresh</button>
+            </div>
+
+            <div class="filters">
+                <select id="filter-type" class="form-input">
+                    <option value="all">Type: All</option>
+                    <option value="bug">Bug</option>
+                    <option value="suggestion">Suggestion</option>
+                    <option value="confusing">Confusing</option>
+                    <option value="other">Other</option>
+                </select>
+                <select id="filter-screen" class="form-input">
+                    <option value="all">Screen: All</option>
+                    <option value="home">Home</option>
+                    <option value="game">Game</option>
+                    <option value="group">Group</option>
+                    <option value="chat">Chat</option>
+                    <option value="profile">Profile</option>
+                    <option value="other">Other</option>
+                </select>
+                <select id="filter-priority" class="form-input">
+                    <option value="all">Priority: All</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+                <input id="filter-search" class="form-input" type="text" placeholder="Search message / name / user id..." />
+            </div>
+
+            <div class="toolbar">
+                <div id="meta" class="muted">Loading…</div>
+                <div class="actions-inline">
+                    <button class="btn btn-secondary" onclick="prevPage()">Prev</button>
+                    <span id="page-info" class="muted">Page 1</span>
+                    <button class="btn btn-secondary" onclick="nextPage()">Next</button>
+                </div>
+            </div>
+
+            <div id="loading" class="loading">Loading feedback...</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Created</th>
+                            <th>Type</th>
+                            <th>Screen</th>
+                            <th>Priority</th>
+                            <th>User</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedback-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/helpUs.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            initHelpUsPage();
+        }
+    </script>
+</body>
+</html>
+

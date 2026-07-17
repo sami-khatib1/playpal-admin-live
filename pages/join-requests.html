@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Join Requests - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+        .toolbar-group { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+        .toolbar input, .toolbar select {
+            padding:.45rem .55rem; border:1px solid var(--color-border); border-radius:8px;
+            background:var(--color-surface); color:var(--color-text);
+        }
+        .table-wrap { overflow:auto; max-height:58vh; }
+        .muted { color:var(--color-text-secondary); font-size:.88rem; }
+        .section-title { margin: .25rem 0 .75rem; font-size: 1.02rem; font-weight: 700; color: var(--color-text); }
+        .section-title strong { color: var(--color-text); }
+        .stack { display:grid; gap:1rem; }
+        .empty-note { padding: .8rem; border:1px dashed var(--color-border); border-radius: 10px; color: var(--color-text-secondary); font-size:.88rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Join Requests</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom:1rem;">
+            Private <strong>game</strong> rows are limited to pending games (non-ended). Private <strong>group</strong> rows are limited to private communities.
+            Read-only feed from the admin API — split into games and groups below.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Private Join Requests</h2>
+                <button class="btn btn-primary" onclick="loadJoinRequests()">Refresh</button>
+            </div>
+            <div class="toolbar">
+                <div id="meta" class="muted">Loading...</div>
+                <div class="toolbar-group">
+                    <select id="status-filter" aria-label="Filter by status">
+                        <option value="">All statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <input id="search-filter" type="text" placeholder="Search requester / target..." />
+                    <button class="btn btn-secondary" onclick="loadJoinRequests()">Apply</button>
+                </div>
+            </div>
+            <div id="loading" class="loading">Loading join requests…</div>
+
+            <div id="content" class="stack" style="display:none;">
+                <section>
+                    <h3 class="section-title">Private game requests</h3>
+                    <div id="games-empty" class="empty-note" style="display:none;">No game join requests found.</div>
+                    <div id="games-wrap" class="table-wrap" style="display:none;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Requester</th>
+                                    <th>Game</th>
+                                    <th>Creator</th>
+                                    <th>Status</th>
+                                    <th>Requested</th>
+                                </tr>
+                            </thead>
+                            <tbody id="games-requests-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="section-title">Private group requests</h3>
+                    <div id="groups-empty" class="empty-note" style="display:none;">No group join requests found.</div>
+                    <div id="groups-wrap" class="table-wrap" style="display:none;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Requester</th>
+                                    <th>Group</th>
+                                    <th>Admins</th>
+                                    <th>Status</th>
+                                    <th>Requested</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groups-requests-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/joinRequests.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadJoinRequests();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Push notifications - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .table-wrap { overflow: auto; max-height: 42vh; }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .form-stack label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
+        .form-stack input[type="text"], .form-stack textarea {
+            width: 100%; max-width: 560px;
+        }
+        .form-stack textarea { min-height: 100px; resize: vertical; }
+        .card-section { margin-bottom: 1.25rem; }
+        tr.row-hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Push notifications</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <p class="muted card-section">
+            Sends a <strong>push only</strong> (FCM / Expo) with your title and body — no in-app inbox row.
+            Users without a registered device token are counted under “No device.” Max <strong>500</strong> recipients per send (raise via server env <code>ADMIN_PUSH_MAX_RECIPIENTS</code>).
+        </p>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Official game / group invite (Matchn)</h2>
+            </div>
+            <div class="form-stack" style="padding: 0 1rem 1rem;">
+                <p class="muted" style="margin:0 0 0.75rem 0;">
+                    Creates real invitation rows and inbox cards as the app user with username <strong>matchn</strong> (override with server env <code>OFFICIAL_INVITER_USERNAME</code>).
+                    For <strong>community games</strong>, recipients must already be members of that game’s community.
+                </p>
+                <label>Invite type</label>
+                <select id="official-kind" class="form-input" style="max-width: 280px;">
+                    <option value="game">Game</option>
+                    <option value="community">Group / community</option>
+                </select>
+                <label for="official-target-id" style="margin-top: 0.75rem;">Game or community ID (UUID)</label>
+                <input id="official-target-id" class="form-input" type="text" maxlength="80" placeholder="e.g. fea2f1d7-1b6f-45ad-8f8b-b9311c31f118" autocomplete="off" />
+                <div class="toolbar" style="margin-top: 1rem;">
+                    <button id="btn-send-official-invites" class="btn btn-primary" type="button" onclick="sendOfficialInvites()">Send invitations</button>
+                </div>
+                <div id="official-invite-result"></div>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Message</h2>
+            </div>
+            <div class="form-stack" style="padding: 0 1rem 1rem;">
+                <label for="push-title">Title</label>
+                <input id="push-title" class="form-input" type="text" maxlength="120" placeholder="Short title" />
+
+                <label for="push-body" style="margin-top: 0.75rem;">Body</label>
+                <textarea id="push-body" class="form-input" maxlength="2000" placeholder="Notification body"></textarea>
+
+                <div class="toolbar" style="margin-top: 1rem;">
+                    <button id="btn-send-push" class="btn btn-primary" type="button" onclick="sendPush()">Send push</button>
+                    <span id="selection-count" class="muted">0 selected</span>
+                </div>
+                <div id="send-result"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Recipients</h2>
+                <button class="btn btn-secondary" type="button" onclick="loadUsersForPicker()">Reload users</button>
+            </div>
+            <div style="padding: 0 1rem 1rem;">
+                <div class="toolbar">
+                    <input id="user-search" class="form-input" type="search" placeholder="Filter by name, username, email…" style="max-width: 320px;" oninput="filterTable()" />
+                    <button class="btn btn-secondary" type="button" onclick="selectAllVisible()">Select first visible (up to max)</button>
+                    <button class="btn btn-secondary" type="button" onclick="clearSelection()">Clear selection</button>
+                </div>
+                <div id="picker-meta" class="muted">Loading…</div>
+                <div id="picker-loading" class="loading">Loading users…</div>
+                <div id="picker-wrap" class="table-wrap" style="display:none;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"></th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-picker-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/push-notifications.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadUsersForPicker();
+        }
+    </script>
+</body>
+</html>

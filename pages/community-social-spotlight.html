@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Community Spotlight - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .muted { color: var(--color-text-secondary); font-size: .88rem; }
+        .table-wrap { overflow: auto; max-height: 62vh; }
+        .btn-sm { padding: .35rem .65rem; font-size: .85rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Community social spotlight</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Photos submitted by <strong>group admins</strong> from the community screen. Download here for Matchn social posts (e.g. Instagram). Submissions are not shown as a gallery inside the app.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Submissions</h2>
+                <button class="btn btn-primary" onclick="loadSubmissions()">Refresh</button>
+            </div>
+            <div id="meta" class="muted" style="margin: .5rem 0;">Loading…</div>
+            <div id="loading" class="loading">Loading…</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Photo</th>
+                            <th>Group</th>
+                            <th>Sport</th>
+                            <th>Uploaded by</th>
+                            <th>Submitted</th>
+                            <th>Download</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/communitySocialSpotlight.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadSubmissions();
+        }
+    </script>
+</body>
+</html>

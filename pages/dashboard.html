@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard - Matchn Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+</head>
+<body>
+    <div class="header">
+        <h1>PlayPal Admin Dashboard</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-hero">
+            <h2>Matchn Admin</h2>
+            <p>Manage venues, users, growth pushes, and outreach — optimized for phone and desktop.</p>
+        </div>
+
+        <p class="section-label">Operations</p>
+        <div class="dashboard-grid">
+            <div class="dashboard-card" onclick="navigate('/venue-requests')">
+                <div class="dashboard-card-icon">📍</div>
+                <h2>Venue Requests</h2>
+                <p>Review and approve venue submissions</p>
+                <div class="card-action">Open</div>
+            </div>
+            
+            <div class="dashboard-card" onclick="navigate('/default-images')">
+                <div class="dashboard-card-icon">🖼️</div>
+                <h2>Default Images</h2>
+                <p>Users, venues, and posts placeholders</p>
+                <div class="card-action">Open</div>
+            </div>
+            
+            <div class="dashboard-card" onclick="navigate('/announcements')">
+                <div class="dashboard-card-icon">📢</div>
+                <h2>Announcements</h2>
+                <p>In-app announcement card per user</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/help-us')">
+                <div class="dashboard-card-icon">💬</div>
+                <h2>Help Us Feedback</h2>
+                <p>Bug reports and product feedback</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/activity-demands')">
+                <div class="dashboard-card-icon">🎯</div>
+                <h2>Activity Demand</h2>
+                <p>Users who couldn't find a game</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/availability')">
+                <div class="dashboard-card-icon">📅</div>
+                <h2>Availability Demand</h2>
+                <p>City / sport / time demand clusters</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/join-requests')">
+                <div class="dashboard-card-icon">🔐</div>
+                <h2>Join Requests</h2>
+                <p>Private game and group requests</p>
+                <div class="card-action">Open</div>
+            </div>
+        </div>
+
+        <p class="section-label">Users &amp; analytics</p>
+        <div class="dashboard-grid">
+            <div class="dashboard-card" onclick="navigate('/analytics')">
+                <div class="dashboard-card-icon">📊</div>
+                <h2>Analytics &amp; KPIs</h2>
+                <p>DAU, signups, games timelines</p>
+                <div class="card-action">Open</div>
+            </div>
+            
+            <div class="dashboard-card" onclick="navigate('/users')">
+                <div class="dashboard-card-icon">👥</div>
+                <h2>Users</h2>
+                <p>Directory, sports, last activity</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/user-activation')">
+                <div class="dashboard-card-icon">⚡</div>
+                <h2>User activation</h2>
+                <p>Community vs game engagement</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/group-stats')">
+                <div class="dashboard-card-icon">🏟️</div>
+                <h2>Group stats</h2>
+                <p>By sport, chats, polls, joins, activity</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/group-labels')">
+                <div class="dashboard-card-icon">🏷️</div>
+                <h2>Group labels</h2>
+                <p>Color, SVG icon &amp; badge text</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/ratings')">
+                <div class="dashboard-card-icon">⭐</div>
+                <h2>Ratings</h2>
+                <p>Sport rankings and star history</p>
+                <div class="card-action">Open</div>
+            </div>
+        </div>
+
+        <p class="section-label">Growth &amp; outreach</p>
+        <div class="dashboard-grid">
+            <div class="dashboard-card" onclick="navigate('/group-discovery-push')">
+                <div class="dashboard-card-icon">📣</div>
+                <h2>Group discovery push</h2>
+                <p>Segment + sports → group detail</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/game-discovery-push')">
+                <div class="dashboard-card-icon">🎮</div>
+                <h2>Game discovery push</h2>
+                <p>Segment + sports → game detail</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/outreach-contacts')">
+                <div class="dashboard-card-icon">🤝</div>
+                <h2>Outreach contacts</h2>
+                <p>People to bring into the app</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/push-notifications')">
+                <div class="dashboard-card-icon">🔔</div>
+                <h2>Push notifications</h2>
+                <p>Custom title &amp; body (push only)</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/group-milestone-reports')">
+                <div class="dashboard-card-icon">🏆</div>
+                <h2>Group milestone reports</h2>
+                <p>Each auto batch — who got what</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/community-social-spotlight')">
+                <div class="dashboard-card-icon">📸</div>
+                <h2>Community spotlight</h2>
+                <p>Photos for social &amp; marketing</p>
+                <div class="card-action">Open</div>
+            </div>
+        </div>
+
+        <p class="section-label">Ask Matchn</p>
+        <div class="dashboard-grid">
+            <div class="dashboard-card" onclick="navigate('/ask-matchn-knowledge')">
+                <div class="dashboard-card-icon">🌳</div>
+                <h2>Knowledge tree</h2>
+                <p>FAQ shown in the app</p>
+                <div class="card-action">Open</div>
+            </div>
+
+            <div class="dashboard-card" onclick="navigate('/ask-matchn')">
+                <div class="dashboard-card-icon">❓</div>
+                <h2>Admin requests</h2>
+                <p>Answer custom group questions</p>
+                <div class="card-action">Open</div>
+            </div>
+        </div>
+
+        <p class="section-label">Coming soon</p>
+        <div class="dashboard-grid">
+            <div class="dashboard-card is-disabled">
+                <div class="dashboard-card-icon">💭</div>
+                <h2>Debates</h2>
+                <p>Moderate debates</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+        }
+    </script>
+</body>
+</html>

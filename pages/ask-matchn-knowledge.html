@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ask Matchn Knowledge - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .km-page { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 2rem; }
+        .km-intro {
+            color: var(--color-text-secondary);
+            margin-bottom: 1.25rem;
+            line-height: 1.55;
+            max-width: 920px;
+        }
+        .km-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .km-toolbar .spacer { flex: 1; }
+        .km-meta { font-size: 0.88rem; color: var(--color-text-secondary); }
+        .km-toast {
+            display: none;
+            padding: 0.65rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.92rem;
+        }
+        .km-toast.success { display: block; background: #d1fae5; color: #065f46; border: 1px solid #86efac; }
+        .km-toast.error { display: block; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .km-welcome-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.15rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .km-welcome-card label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: var(--color-text);
+        }
+        .km-welcome-card textarea {
+            width: 100%;
+            min-height: 72px;
+            resize: vertical;
+            padding: 0.6rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: inherit;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+        .km-help { font-size: 0.82rem; color: var(--color-text-secondary); margin-top: 0.35rem; }
+
+        .km-layout {
+            display: grid;
+            grid-template-columns: minmax(240px, 320px) 1fr;
+            gap: 1rem;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .km-layout { grid-template-columns: 1fr; }
+        }
+
+        .km-tree-panel, .km-editor-panel {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .km-panel-head {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--color-border);
+            background: linear-gradient(180deg, rgba(127, 179, 255, 0.08), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .km-panel-head h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        .km-tree-body {
+            max-height: 68vh;
+            overflow: auto;
+            padding: 0.5rem 0;
+        }
+        .km-tree-node {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.65rem 0.4rem 0;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            font-size: 0.9rem;
+            color: var(--color-text);
+        }
+        .km-tree-node:hover { background: rgba(127, 179, 255, 0.08); }
+        .km-tree-node.selected {
+            background: rgba(127, 179, 255, 0.14);
+            border-left-color: var(--color-primary);
+            font-weight: 600;
+        }
+        .km-tree-toggle {
+            width: 22px;
+            height: 22px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+        .km-tree-toggle.hidden { visibility: hidden; }
+        .km-tree-icon { flex-shrink: 0; font-size: 0.85rem; opacity: 0.85; }
+        .km-tree-label {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .km-tree-children { margin-left: 0.35rem; }
+        .km-tree-footer {
+            padding: 0.65rem 0.75rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .km-editor-body { padding: 1rem 1.15rem 1.15rem; }
+        .km-editor-empty {
+            color: var(--color-text-secondary);
+            padding: 2rem 1rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .km-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            margin-bottom: 0.65rem;
+        }
+        .km-badge-topic { background: #dbeafe; color: #1e40af; }
+        .km-badge-qa { background: #dcfce7; color: #166534; }
+        .km-breadcrumb {
+            font-size: 0.82rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+        .km-field { margin-bottom: 0.85rem; }
+        .km-field label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.88rem;
+            margin-bottom: 0.3rem;
+            color: var(--color-text);
+        }
+        .km-field input, .km-field textarea {
+            width: 100%;
+            padding: 0.55rem 0.7rem;
+            border-radius: 10px;
+            border: 1px solid var(--color-border);
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: inherit;
+            font-size: 0.92rem;
+            box-sizing: border-box;
+        }
+        .km-field textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
+        .km-field-hint { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
+
+        .km-editor-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+        .btn-danger-outline {
+            background: transparent;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        .btn-danger-outline:hover { background: #fef2f2; }
+
+        .km-advanced {
+            margin-top: 1.25rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            overflow: hidden;
+        }
+        .km-advanced summary {
+            cursor: pointer;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            background: var(--color-background);
+            user-select: none;
+        }
+        .km-advanced textarea {
+            width: 100%;
+            min-height: 200px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.45;
+            padding: 12px;
+            border: none;
+            border-top: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ask Matchn Knowledge</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="navigate('/ask-matchn')">Custom requests</button>
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')">Dashboard</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="km-page">
+        <p class="km-intro">
+            Build the FAQ tree group admins see in <strong>Ask Matchn</strong>. Topics drill down like chat quick replies;
+            leaf items are instant Q&amp;A answers. The app loads this once per session — save here to update.
+        </p>
+
+        <div id="km-toast" class="km-toast"></div>
+
+        <div class="km-toolbar">
+            <button class="btn btn-primary" id="btn-save" type="button">Save changes</button>
+            <button class="btn btn-secondary" id="btn-reload" type="button">Reload</button>
+            <button class="btn btn-secondary" id="btn-reset" type="button">Reset to default</button>
+            <span class="spacer"></span>
+            <span id="meta" class="km-meta"></span>
+        </div>
+
+        <div class="km-welcome-card">
+            <label for="welcome-message">Welcome message</label>
+            <textarea id="welcome-message" placeholder="Shown when admins open Ask Matchn…"></textarea>
+            <p class="km-help">First bubble users see before picking a topic.</p>
+        </div>
+
+        <div class="km-layout">
+            <div class="km-tree-panel">
+                <div class="km-panel-head">
+                    <h2>Topics</h2>
+                </div>
+                <div id="km-tree" class="km-tree-body"></div>
+                <div class="km-tree-footer">
+                    <button class="btn btn-secondary btn-sm" id="btn-add-topic" type="button">+ Top-level topic</button>
+                </div>
+            </div>
+
+            <div class="km-editor-panel">
+                <div class="km-panel-head">
+                    <h2 id="editor-title">Edit item</h2>
+                </div>
+                <div id="km-editor" class="km-editor-body">
+                    <div class="km-editor-empty">Select a topic or question from the tree to edit it.</div>
+                </div>
+            </div>
+        </div>
+
+        <details class="km-advanced" id="km-advanced">
+            <summary>Advanced — raw JSON</summary>
+            <textarea id="knowledge-json" spellcheck="false" readonly></textarea>
+        </details>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/askMatchnKnowledge.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+            document.getElementById('admin-name').textContent = adminUser.name || adminUser.email || 'Admin';
+            initAskMatchnKnowledgePage();
+        }
+    </script>
+</body>
+</html>

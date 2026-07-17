@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Group stats - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .kpi-tile {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+        }
+        .kpi-tile .label {
+            font-size: 0.72rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .kpi-tile .value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-top: 0.25rem;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .card-section { margin-bottom: 1.5rem; }
+        .toolbar-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .toolbar-row label { font-size: 0.85rem; color: var(--color-text-secondary); }
+        .toolbar-row input, .toolbar-row select {
+            padding: 0.35rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--color-border);
+            padding: 0.4rem 0.5rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        .stats-table th { background: var(--color-surface); position: sticky; top: 0; z-index: 1; }
+        .stats-table td.name-cell { white-space: normal; min-width: 10rem; max-width: 16rem; }
+        .score-pill {
+            display: inline-block;
+            min-width: 1.6rem;
+            text-align: center;
+            padding: 0.12rem 0.45rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            border: 1px solid var(--color-border);
+        }
+        .score-low { background: #f3f4f6; color: #4b5563; }
+        .score-mid { background: #fef3c7; color: #92400e; }
+        .score-high { background: #dcfce7; color: #166534; }
+        .bar-cell { min-width: 90px; }
+        .bar-fill {
+            height: 8px;
+            background: linear-gradient(90deg, var(--color-primary-dark), var(--color-primary));
+            border-radius: 4px;
+            max-width: 100%;
+        }
+        .table-wrap { overflow: auto; max-height: 68vh; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Group stats</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Groups by sport, plus per-group activity: chats (last 30 days via Stream), active polls,
+            join requests (last 30 days), members, admins, and an activity score from 1–10.
+        </p>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Overview</h2>
+                <button class="btn btn-primary" type="button" onclick="loadGroupStats()">Refresh</button>
+            </div>
+            <div id="groups-overview" class="kpi-grid">Loading…</div>
+            <p id="groups-chat-note" class="muted" style="margin-top: 0.5rem;"></p>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Groups by sport</h2>
+            </div>
+            <div id="sport-breakdown" class="table-wrap"></div>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">All groups</h2>
+            </div>
+            <div class="toolbar-row">
+                <label>Search <input type="search" id="gs-search" placeholder="name, city, sport…" style="min-width: 12rem;"></label>
+                <label>Sport
+                    <select id="gs-sport">
+                        <option value="">All</option>
+                    </select>
+                </label>
+                <label>Sort
+                    <select id="gs-sort">
+                        <option value="activity">Activity score</option>
+                        <option value="chats">Chats 30d</option>
+                        <option value="members">Members</option>
+                        <option value="joins">Join requests 30d</option>
+                        <option value="polls">Active polls</option>
+                        <option value="name">Name</option>
+                    </select>
+                </label>
+                <span id="gs-count" class="muted"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Sport</th>
+                            <th>City</th>
+                            <th>Status</th>
+                            <th>Members</th>
+                            <th>Admins</th>
+                            <th>Chats 30d</th>
+                            <th>Active polls</th>
+                            <th>Joins 30d</th>
+                            <th>Activity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gs-body">
+                        <tr><td colspan="10" class="muted">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/group-stats.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            initGroupStatsPage();
+        }
+    </script>
+</body>
+</html>

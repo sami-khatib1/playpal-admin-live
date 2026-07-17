@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Group labels - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .card-section { margin-bottom: 1.5rem; }
+        .toolbar-row {
+            display: flex; flex-wrap: wrap; gap: 0.5rem;
+            align-items: center; margin-bottom: 0.75rem;
+        }
+        .toolbar-row label { font-size: 0.85rem; color: var(--color-text-secondary); }
+        .toolbar-row input, .toolbar-row select, .toolbar-row textarea {
+            padding: 0.4rem 0.5rem; border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface); color: var(--color-text);
+        }
+        .toolbar-row textarea { min-width: min(100%, 28rem); min-height: 5rem; font-family: monospace; font-size: 0.78rem; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--color-border);
+            padding: 0.4rem 0.5rem; text-align: left; vertical-align: middle;
+        }
+        .stats-table th { background: var(--color-surface); position: sticky; top: 0; z-index: 1; }
+        .table-wrap { overflow: auto; max-height: 55vh; }
+        .preview-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            border-radius: 999px; padding: 4px 10px; color: #fff;
+            font-size: 0.75rem; font-weight: 600; max-width: 180px;
+        }
+        .preview-badge svg { width: 14px; height: 14px; fill: #fff; }
+        .swatch {
+            display: inline-block; width: 14px; height: 14px;
+            border-radius: 4px; border: 1px solid var(--color-border);
+            vertical-align: middle; margin-right: 4px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.65rem;
+            margin-bottom: 0.75rem;
+        }
+        .form-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; }
+        .icon-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 8px; border-radius: 8px;
+            border: 1px solid var(--color-border); margin: 2px;
+            background: var(--color-surface);
+        }
+        .icon-chip svg { width: 16px; height: 16px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Group labels</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Set a color + SVG icon + text label on any group. The app shows a matching border and
+            top-right badge on cards and the group detail cover. Icons load once at app start —
+            no extra group API calls.
+        </p>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">SVG icon catalog</h2>
+                <button class="btn btn-primary" type="button" onclick="loadAll()">Refresh</button>
+            </div>
+            <div id="icon-list" class="muted" style="margin-bottom: 0.75rem;">Loading…</div>
+            <div class="form-grid">
+                <label>Icon id (slug)
+                    <input id="icon-id" placeholder="e.g. flame" />
+                </label>
+                <label>Display name
+                    <input id="icon-name" placeholder="Flame" />
+                </label>
+                <label>Sort order
+                    <input id="icon-sort" type="number" value="99" />
+                </label>
+            </div>
+            <label class="muted" style="display:block; margin-bottom:0.35rem;">SVG markup</label>
+            <textarea id="icon-svg" placeholder='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">…</svg>'></textarea>
+            <div class="toolbar-row" style="margin-top: 0.5rem;">
+                <button class="btn btn-primary" type="button" onclick="createIcon()">Add icon</button>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Assign label to a group</h2>
+            </div>
+            <div class="form-grid">
+                <label>Group
+                    <select id="community-select"></select>
+                </label>
+                <label>Label text
+                    <input id="label-text" maxlength="40" placeholder="Featured" />
+                </label>
+                <label>Color
+                    <input id="label-color" type="color" value="#E11D48" />
+                </label>
+                <label>Icon
+                    <select id="label-icon"></select>
+                </label>
+            </div>
+            <div class="toolbar-row">
+                <span class="muted">Preview:</span>
+                <span id="label-preview" class="preview-badge" style="background:#E11D48;">Featured</span>
+                <button class="btn btn-primary" type="button" onclick="saveLabel()">Save label</button>
+                <button class="btn btn-secondary" type="button" onclick="clearLabel()">Clear label</button>
+            </div>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Groups</h2>
+            </div>
+            <div class="toolbar-row">
+                <label>Search <input type="search" id="comm-search" placeholder="name…" style="min-width:12rem;"></label>
+                <label><input type="checkbox" id="comm-labeled-only"> Labeled only</label>
+                <span id="comm-count" class="muted"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Sport</th>
+                            <th>City</th>
+                            <th>Label</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="comm-body">
+                        <tr><td colspan="5" class="muted">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/group-labels.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            initGroupLabelsPage();
+        }
+    </script>
+</body>
+</html>

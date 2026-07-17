@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Venue Requests - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/venue-requests.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Venue Requests Management</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="navigate('/dashboard')" style="margin-right: 0.5rem;">← Dashboard</button>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">All Venue Requests</h2>
+                <button class="btn btn-primary" onclick="loadVenueRequests()">Refresh</button>
+            </div>
+            
+            <div id="loading" class="loading">Loading venue requests...</div>
+            
+            <div id="requests-container" style="display: none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Sports</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requests-table-body">
+                        <!-- Requests will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reject Modal -->
+    <div id="reject-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reject Venue Request</h3>
+                <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Please provide a reason for rejection:</p>
+                <textarea 
+                    id="rejection-reason" 
+                    class="form-input" 
+                    rows="4" 
+                    placeholder="Enter rejection reason..."
+                ></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmReject()">Reject</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Details Modal -->
+    <div id="details-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Venue Request Details</h3>
+                <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="details-content">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Lightbox Modal -->
+    <div id="image-lightbox" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeImageLightbox()">&times;</button>
+            <img id="lightbox-image" src="" alt="Venue image">
+            <div id="lightbox-counter"></div>
+            <button id="lightbox-prev" onclick="navigateLightbox(-1)">&larr;</button>
+            <button id="lightbox-next" onclick="navigateLightbox(1)">&rarr;</button>
+        </div>
+    </div>
+    
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/venueRequests.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/venueRequestsUI.js"></script>
+    <script>
+        let currentRejectId = null;
+        
+        console.log('📄 [Venue Requests Page] Script loaded');
+        console.log('   isAuthenticated available:', typeof isAuthenticated);
+        console.log('   loadVenueRequests available:', typeof loadVenueRequests);
+        console.log('   fetchVenueRequests available:', typeof fetchVenueRequests);
+        
+        // Check authentication
+        if (!isAuthenticated()) {
+            console.log('❌ [Venue Requests Page] Not authenticated, redirecting to login');
+            navigate('/login');
+        } else {
+            console.log('✅ [Venue Requests Page] Authenticated, loading venue requests');
+            // Load venue requests on page load
+            loadVenueRequests();
+        }
+    </script>
+</body>
+</html>
+

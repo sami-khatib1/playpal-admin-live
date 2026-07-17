@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Group discovery push - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .table-wrap { overflow: auto; max-height: 48vh; }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .toolbar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .form-stack label { display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.9rem; }
+        .form-stack input[type="text"], .form-stack textarea {
+            width: 100%; max-width: 560px;
+        }
+        .form-stack textarea { min-height: 88px; resize: vertical; }
+        .card-section { margin-bottom: 1.25rem; }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .filter-grid label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+        .sports-chips {
+            display: flex; flex-wrap: wrap; gap: 0.35rem;
+        }
+        .sport-chip {
+            display: inline-flex; align-items: center; gap: 0.25rem;
+            padding: 0.2rem 0.5rem; border-radius: 999px;
+            border: 1px solid var(--color-border); font-size: 0.8rem;
+            cursor: pointer; user-select: none;
+        }
+        .sport-chip input { margin: 0; }
+        .sport-chip.active { border-color: var(--color-primary); background: rgba(45, 90, 61, 0.08); }
+        .pill {
+            display: inline-block; padding: 0.12rem 0.45rem; border-radius: 999px;
+            font-size: 0.68rem; font-weight: 600; border: 1px solid var(--color-border);
+        }
+        .pill-both { background: #dcfce7; border-color: #86efac; color: #166534; }
+        .pill-community_only { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+        .pill-game_only { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+        .pill-neither { background: #f3f4f6; border-color: #d1d5db; color: #4b5563; }
+        .token-yes { color: #166534; font-weight: 600; font-size: 0.8rem; }
+        .token-no { color: var(--color-text-secondary); font-size: 0.8rem; }
+        .banner-select-all {
+            background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px;
+            padding: 0.6rem 0.85rem; margin-bottom: 0.75rem; font-size: 0.88rem;
+        }
+        .pagination { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        tr.no-token td { opacity: 0.72; }
+        #candidates-body tr {
+            cursor: pointer;
+            transition: background 0.12s ease, box-shadow 0.12s ease;
+        }
+        #candidates-body tr.selected {
+            background: rgba(43, 187, 173, 0.14);
+            box-shadow: inset 3px 0 0 var(--color-primary);
+        }
+        #candidates-body tr.selected:hover {
+            background: rgba(43, 187, 173, 0.2);
+        }
+        #candidates-body .user-check {
+            width: 18px;
+            height: 18px;
+            min-height: 18px;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+            appearance: auto;
+            accent-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Group discovery push</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <p class="muted card-section">
+            Push-only growth message with <code>COMMUNITY_UPDATED</code> payload — tap opens <strong>Home + group detail</strong>.
+            No inbox card. Filter by activation segment and favorite sports. Max <strong>500</strong> recipients per send.
+        </p>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Message &amp; group</h2>
+            </div>
+            <div class="form-stack" style="padding: 0 1rem 1rem;">
+                <label for="community-id">Community ID (UUID)</label>
+                <input id="community-id" class="form-input" type="text" maxlength="80" placeholder="Group to open when user taps" autocomplete="off" />
+
+                <label for="push-title" style="margin-top: 0.75rem;">Title</label>
+                <input id="push-title" class="form-input" type="text" maxlength="120" placeholder="e.g. Check out this group" />
+
+                <label for="push-body" style="margin-top: 0.75rem;">Body</label>
+                <textarea id="push-body" class="form-input" maxlength="2000" placeholder="Short message — group name can go here"></textarea>
+
+                <div class="toolbar" style="margin-top: 1rem;">
+                    <button id="btn-send" class="btn btn-primary" type="button" onclick="sendGroupDiscoveryPush()">Send push</button>
+                    <span id="selection-summary" class="muted">0 selected</span>
+                </div>
+                <div id="send-result"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Recipients</h2>
+                <button class="btn btn-secondary" type="button" onclick="loadCandidates(1)">Apply filters</button>
+            </div>
+            <div style="padding: 0 1rem 1rem;">
+                <div class="filter-grid">
+                    <div>
+                        <label for="segment-filter">Activation segment</label>
+                        <select id="segment-filter" class="form-input">
+                            <option value="">All segments</option>
+                            <option value="neither">Neither (no group, no game)</option>
+                            <option value="community_only">Community only</option>
+                            <option value="game_only">Game only</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="user-search">Search</label>
+                        <input id="user-search" class="form-input" type="search" placeholder="Name, username, email…" />
+                    </div>
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <label>Favorite sports (any match)</label>
+                    <div id="sports-chips" class="sports-chips muted">Loading sports…</div>
+                </div>
+
+                <div id="select-all-banner" class="banner-select-all" style="display: none;"></div>
+
+                <div class="toolbar">
+                    <button class="btn btn-secondary" type="button" onclick="selectAllOnPage()">Select all on page</button>
+                    <button class="btn btn-secondary" type="button" onclick="selectAllMatching()">Select all matching filters</button>
+                    <button class="btn btn-secondary" type="button" onclick="clearSelection()">Clear selection</button>
+                </div>
+
+                <div id="candidates-meta" class="muted">Loading…</div>
+                <div id="candidates-loading" class="loading">Loading candidates…</div>
+                <div id="candidates-wrap" class="table-wrap" style="display:none;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"></th>
+                                <th>Name</th>
+                                <th>Username</th>
+                                <th>Segment</th>
+                                <th>Sports</th>
+                                <th>Push</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidates-body"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" style="margin-top: 0.75rem;">
+                    <button id="btn-prev" class="btn btn-secondary" type="button" onclick="prevPage()" disabled>Previous</button>
+                    <span id="page-label" class="muted">Page 1</span>
+                    <button id="btn-next" class="btn btn-secondary" type="button" onclick="nextPage()" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/group-discovery-push.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            initGroupDiscoveryPush();
+        }
+    </script>
+</body>
+</html>

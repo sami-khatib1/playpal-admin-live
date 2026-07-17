@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Group milestone reports - Matchn Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .stat-box {
+            background: var(--color-surface-elevated, #f8faf9);
+            border: 1px solid var(--color-border, #e2e8e6);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+        }
+        .stat-box .label {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .stat-box .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .table-wrap {
+            overflow: auto;
+            max-height: 42vh;
+        }
+        .detail-panel {
+            margin-top: 1rem;
+            display: none;
+        }
+        .detail-panel.is-open {
+            display: block;
+        }
+        .run-row {
+            cursor: pointer;
+        }
+        .run-row.is-selected {
+            background: rgba(43, 187, 173, 0.12);
+        }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.9rem; }
+        .body-cell {
+            max-width: 280px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 0.75rem;
+        }
+        .chip {
+            border: 1px solid var(--color-border, #dde3e1);
+            background: #fff;
+            border-radius: 999px;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .chip.active {
+            background: rgba(43, 187, 173, 0.15);
+            border-color: var(--color-primary, #2bbbad);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Group milestones</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container page-wrap">
+        <div id="error-message" class="error" style="display: none;"></div>
+
+        <p class="page-lead">
+            Automatic group milestone notification batches — who was sent what, skipped, or had no match.
+        </p>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Job status</h2>
+                <button class="btn btn-secondary" type="button" onclick="refreshAll()">Refresh</button>
+            </div>
+            <div id="job-status-loading" class="loading">Loading job status…</div>
+            <div id="job-status" class="stats-grid" style="display: none;"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Batch runs</h2>
+            </div>
+
+            <div class="toolbar">
+                <div id="runs-meta" class="muted">Loading…</div>
+                <div>
+                    <button class="btn btn-secondary" type="button" onclick="prevRunsPage()">Prev</button>
+                    <span id="runs-page-info" class="muted">Page 1</span>
+                    <button class="btn btn-secondary" type="button" onclick="nextRunsPage()">Next</button>
+                </div>
+            </div>
+
+            <div id="runs-loading" class="loading">Loading runs…</div>
+            <div id="runs-table-wrap" class="table-wrap" style="display: none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Started</th>
+                            <th>Status</th>
+                            <th>Trigger</th>
+                            <th>Sent</th>
+                            <th>Skipped</th>
+                            <th>No match</th>
+                            <th>Duration</th>
+                            <th>Dry</th>
+                        </tr>
+                    </thead>
+                    <tbody id="runs-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="detail-panel" class="card detail-panel">
+            <div class="card-header">
+                <h2 class="card-title" id="detail-title">Run details</h2>
+                <button class="btn btn-ghost" type="button" onclick="closeDetail()">Close</button>
+            </div>
+
+            <div id="detail-summary" class="stats-grid"></div>
+
+            <div class="filter-chips" id="delivery-filters"></div>
+
+            <div class="toolbar">
+                <div id="deliveries-meta" class="muted"></div>
+                <div>
+                    <button class="btn btn-secondary" type="button" onclick="prevDeliveriesPage()">Prev</button>
+                    <span id="deliveries-page-info" class="muted">Page 1</span>
+                    <button class="btn btn-secondary" type="button" onclick="nextDeliveriesPage()">Next</button>
+                </div>
+            </div>
+
+            <div id="deliveries-loading" class="loading" style="display: none;">Loading deliveries…</div>
+            <div id="deliveries-table-wrap" class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Group</th>
+                            <th>Kind</th>
+                            <th>Body</th>
+                            <th>km</th>
+                            <th>Own group</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deliveries-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/group-milestone-reports.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            initGroupMilestoneReports();
+        }
+    </script>
+</body>
+</html>
