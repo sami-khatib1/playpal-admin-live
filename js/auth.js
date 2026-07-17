@@ -85,7 +85,7 @@ window.navigate = navigate;
 function isAllowedAdminEmail(email) {
     const normalized = String(email || '').toLowerCase().trim();
     const local = normalized.split('@')[0] || '';
-    return local.startsWith('sami') || local.startsWith('yousef');
+    return local.startsWith('sami') || local.startsWith('yousef') || local.startsWith('munanseir');
 }
 
 // Login function
