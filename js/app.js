@@ -27,6 +27,7 @@ function navigate(path) {
         '/community-social-spotlight': 'community-social-spotlight.html',
         '/ask-matchn': 'ask-matchn.html',
         '/ask-matchn-knowledge': 'ask-matchn-knowledge.html',
+        '/support-chat': 'support-chat.html',
     };
     
     // Get the target page filename
