@@ -10,6 +10,8 @@
         "padel",
         "volleyball",
         "running",
+        "hiking",
+        "swimming",
         "pilates",
         "dancing",
         "bingbong",
