@@ -6,7 +6,7 @@ const NetworkConfig = {
   // "LOCAL" - localhost (for local development)
   // "NGROK" - ngrok tunnel (for testing with mobile devices or remote access)
   // "PROD" - Google Cloud Run (for production)
-  MODE: "PROD", // Use prod API for admin analytics (production DB). "LOCAL" / "NGROK" for local dev against staging.
+  MODE: "LOCAL", // LOCAL = localhost backend (has new support routes). PROD = Cloud Run. Staging DB toggle only applies on PROD/NGROK.
 
   // Local development server
   LOCAL_BASE_URL: "http://localhost:3000/api",
