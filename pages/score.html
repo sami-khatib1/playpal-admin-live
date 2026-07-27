@@ -25,7 +25,7 @@
         }
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 0.75rem;
             margin-bottom: 1rem;
         }
@@ -38,22 +38,31 @@
         .kpi-tile .label { font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
         .kpi-tile .value { font-size: 1.35rem; font-weight: 700; color: var(--color-text); margin-top: 0.25rem; }
         .kpi-tile .contrib { font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.35rem; }
-        .kpi-tile .weight { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 0.15rem; }
+        .kpi-tile .extra { font-size: 0.78rem; color: var(--color-text-secondary); margin-top: 0.2rem; }
         .toolbar-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
         .chart-wrap { position: relative; height: 280px; margin: 0.75rem 0 1rem; }
+        .chart-wrap-sm { height: 200px; margin: 0.35rem 0 0; }
+        .param-charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .param-chart-card {
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 0.75rem 0.85rem 0.5rem;
+            background: var(--color-surface);
+        }
+        .param-chart-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--color-text);
+        }
         .timeline-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         .timeline-table th, .timeline-table td { border: 1px solid var(--color-border); padding: 0.4rem 0.5rem; text-align: left; }
         .timeline-table th { background: var(--color-surface); }
-        .formula-box {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: 0.78rem;
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            white-space: pre-wrap;
-            margin-bottom: 1rem;
-        }
     </style>
 </head>
 <body>
@@ -68,13 +77,13 @@
     <div class="container">
         <div id="error-message" class="error" style="display: none;"></div>
         <p class="muted" style="margin-bottom: 1rem;">
-            Overall score = sum of each parameter contribution. Weights live in
-            <code>js/score.js</code> (<code>SCORE_WEIGHTS</code>) so you can tweak them without a backend change.
+            Overall score from weighted parameters (weights in <code>js/score.js</code>, not shown here).
+            Polls = newly created today; pending games = currently open; chat messages = Stream counts for the day.
         </p>
 
         <div class="card card-section">
             <div class="card-header">
-                <h2 class="card-title">Today (UTC)</h2>
+                <h2 class="card-title">Today</h2>
                 <div class="toolbar-row" style="margin:0;">
                     <button class="btn btn-secondary" type="button" onclick="recordScoreSnapshot()">Record snapshot</button>
                     <button class="btn btn-primary" type="button" onclick="loadScoreLive()">Refresh</button>
@@ -85,22 +94,24 @@
                 <div class="muted" id="overall-score-note">Loading…</div>
             </div>
             <div id="score-param-kpis" class="kpi-grid">Loading…</div>
-            <div class="formula-box" id="score-formula-box"></div>
         </div>
 
         <div class="card card-section">
             <div class="card-header">
-                <h2 class="card-title">Score over time</h2>
+                <h2 class="card-title">Score &amp; stats over time</h2>
                 <button class="btn btn-primary" type="button" onclick="loadScoreHistory()">Load</button>
             </div>
             <div class="toolbar-row">
                 <label>From <input type="date" id="score-from" class="form-input" style="width: auto;"></label>
                 <label>To <input type="date" id="score-to" class="form-input" style="width: auto;"></label>
             </div>
+            <h3 class="card-title" style="font-size: 1rem;">Overall score</h3>
             <div class="chart-wrap">
                 <canvas id="score-chart"></canvas>
             </div>
-            <div id="score-history-wrap" class="table-wrap" style="overflow:auto; max-height: 420px;"></div>
+            <h3 class="card-title" style="font-size: 1rem;">Each statistic</h3>
+            <div id="score-param-charts" class="param-charts-grid"></div>
+            <div id="score-history-wrap" class="table-wrap" style="overflow:auto; max-height: 420px; margin-top: 1rem;"></div>
         </div>
     </div>
 
