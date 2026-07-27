@@ -98,6 +98,7 @@ function renderUsersRows(users) {
                         <td>${formatUserLocation(u)}</td>
                         <td class="sports-cell">${escapeHtml(formatSports(u.favoriteSports))}</td>
                         <td>${escapeHtml(formatDateOnly(u.lastActiveAt))}</td>
+                        <td>${escapeHtml(formatAppVersion(u))}</td>
                         <td>${escapeHtml(formatDate(u.lastGameAt))}</td>
                         <td>${escapeHtml(u.accountType || "")}</td>
                         <td>${formatStatus(u)}</td>
@@ -158,6 +159,17 @@ function formatSports(arr) {
     }
     if (!Array.isArray(arr) || arr.length === 0) return "—";
     return arr.map((s) => String(s).trim()).filter(Boolean).join(", ");
+}
+
+function formatAppVersion(u) {
+    const version = u?.lastAppVersion != null ? String(u.lastAppVersion).trim() : "";
+    const build = u?.lastAppBuild != null ? String(u.lastAppBuild).trim() : "";
+    const platform = u?.lastAppPlatform != null ? String(u.lastAppPlatform).trim() : "";
+    if (!version && !build && !platform) return "—";
+    const main = version || "—";
+    const buildPart = build ? ` (${build})` : "";
+    const platformPart = platform ? ` · ${platform}` : "";
+    return `${main}${buildPart}${platformPart}`;
 }
 
 /** Location column: backend `locationSummary`, then `city`, then raw `location` JSON. */
@@ -229,6 +241,9 @@ function exportUsersCsv() {
         "City",
         "Favorite sports",
         "Last activity",
+        "App version",
+        "App build",
+        "App platform",
         "Last game",
         "Account",
         "Deleted",
@@ -240,6 +255,9 @@ function exportUsersCsv() {
         getPlainUserLocation(u),
         formatSports(u.favoriteSports),
         formatDateOnly(u.lastActiveAt),
+        u.lastAppVersion || "",
+        u.lastAppBuild || "",
+        u.lastAppPlatform || "",
         formatDate(u.lastGameAt),
         u.accountType || "",
         u.deletedAt != null ? "yes" : "no",
