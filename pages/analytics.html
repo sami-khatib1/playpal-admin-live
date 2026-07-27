@@ -37,6 +37,12 @@
         .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
         .card-section { margin-bottom: 1.5rem; }
         .pagination { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .chart-wrap {
+            position: relative;
+            height: 280px;
+            margin: 0.75rem 0 1rem;
+        }
+        .eng-avg-note { margin-top: 0.5rem; }
     </style>
 </head>
 <body>
@@ -52,6 +58,7 @@
         <div id="error-message" class="error" style="display: none;"></div>
         <p class="muted" style="margin-bottom: 1rem;">
             DAU / WAU / MAU use <code>lastActiveAt</code>, updated at most once per 30 minutes per user on authenticated API calls (UTC day for DAU).
+            App versions use the same touch path from client headers (<code>x-app-version</code>, <code>x-app-build</code>, <code>x-platform</code>).
         </p>
 
         <div class="card card-section">
@@ -68,6 +75,37 @@
                 <button class="btn btn-primary" type="button" onclick="loadEngagement()">Refresh</button>
             </div>
             <div id="engagement-kpis" class="kpi-grid">Loading…</div>
+            <p id="engagement-avg-note" class="muted eng-avg-note"></p>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">Engagement over time</h2>
+                <div class="toolbar-row" style="margin:0;">
+                    <button class="btn btn-secondary" type="button" onclick="recordEngagementSnapshot()">Record snapshot now</button>
+                    <button class="btn btn-primary" type="button" onclick="loadEngagementHistory()">Load</button>
+                </div>
+            </div>
+            <p class="muted" style="margin-bottom: 0.75rem;">
+                Stored daily snapshots (UTC). Week/month rows average DAU/WAU/MAU and sum signups/games created.
+                Use <strong>Record snapshot now</strong> while testing locally.
+            </p>
+            <div class="toolbar-row">
+                <label>From <input type="date" id="eng-from" class="form-input" style="width: auto;"></label>
+                <label>To <input type="date" id="eng-to" class="form-input" style="width: auto;"></label>
+                <label>Bucket
+                    <select id="eng-bucket" class="form-input" style="width: auto;">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                    </select>
+                </label>
+            </div>
+            <div id="engagement-range-kpis" class="kpi-grid"></div>
+            <div class="chart-wrap">
+                <canvas id="engagement-chart"></canvas>
+            </div>
+            <div id="engagement-history-wrap" class="table-wrap" style="overflow:auto; max-height: 360px;"></div>
         </div>
 
         <div class="card card-section">
@@ -86,6 +124,25 @@
             <div id="games-created-wrap" class="table-wrap" style="overflow:auto; max-height: 280px;"></div>
             <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem;">Games started (by scheduled <code>dateTime</code>, past only)</h3>
             <div id="games-started-wrap" class="table-wrap" style="overflow:auto; max-height: 280px;"></div>
+        </div>
+
+        <div class="card card-section">
+            <div class="card-header">
+                <h2 class="card-title">App versions</h2>
+                <button class="btn btn-primary" type="button" onclick="loadAppVersions()">Refresh</button>
+            </div>
+            <p class="muted" style="margin-bottom: 0.75rem;">
+                Last-seen client version from <code>x-app-version</code> / <code>x-app-build</code> /
+                <code>x-platform</code>, stored with <code>lastActiveAt</code> (throttled ~30m).
+                Unknown = never recorded yet (inactive, or pre-migration traffic).
+            </p>
+            <div id="app-versions-kpis" class="kpi-grid">Loading…</div>
+            <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem;">By marketing version</h3>
+            <div id="app-version-breakdown" class="table-wrap" style="overflow:auto; max-height: 280px;"></div>
+            <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem;">By platform</h3>
+            <div id="app-platform-breakdown" class="table-wrap" style="overflow:auto; max-height: 200px;"></div>
+            <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem;">Version × platform (known only)</h3>
+            <div id="app-version-platform-breakdown" class="table-wrap" style="overflow:auto; max-height: 280px;"></div>
         </div>
 
         <div class="card card-section">
@@ -140,6 +197,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="../js/config.js"></script>
     <script src="../js/dbTarget.js"></script>
     <script src="../js/auth.js"></script>

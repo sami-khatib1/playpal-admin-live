@@ -25,15 +25,17 @@ function showError(msg) {
     }
 }
 
-async function adminFetch(path) {
+async function adminFetch(path, options = {}) {
     const token = getToken();
     const url = `${getApiBaseUrl()}${path}`;
     const response = await fetch(url, {
-        method: "GET",
+        method: options.method || "GET",
         headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            ...(options.headers || {}),
         },
+        body: options.body,
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.success === false) {
@@ -80,14 +82,23 @@ function renderTimelineTable(containerId, points, maxCount) {
 function setDefaultDates() {
     const to = new Date();
     const from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const toInput = document.getElementById("tl-to");
-    const fromInput = document.getElementById("tl-from");
-    if (toInput && !toInput.value) {
-        toInput.value = to.toISOString().slice(0, 10);
-    }
-    if (fromInput && !fromInput.value) {
-        fromInput.value = from.toISOString().slice(0, 10);
-    }
+    const toStr = to.toISOString().slice(0, 10);
+    const fromStr = from.toISOString().slice(0, 10);
+    const pairs = [
+        ["tl-to", toStr],
+        ["tl-from", fromStr],
+        ["eng-to", toStr],
+        ["eng-from", fromStr],
+    ];
+    pairs.forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.value = val;
+    });
+}
+
+function fmtNum(v) {
+    if (v == null || Number.isNaN(Number(v))) return "—";
+    return String(v);
 }
 
 async function loadSnapshot() {
@@ -123,10 +134,168 @@ async function loadEngagement() {
             ["WAU (rolling 7d)", data.wau7d ?? "—"],
             ["MAU (rolling 30d)", data.mau30d ?? "—"],
             ["Stickiness DAU/MAU", stick],
+            ["Avg DAU (7d)", fmtNum(data.avgDau7d)],
+            ["Avg WAU (7d)", fmtNum(data.avgWau7d)],
+            ["Avg MAU (7d)", fmtNum(data.avgMau7d)],
+            ["Avg DAU (30d)", fmtNum(data.avgDau30d)],
+            ["Avg WAU (30d)", fmtNum(data.avgWau30d)],
+            ["Avg MAU (30d)", fmtNum(data.avgMau30d)],
         ]);
+        const note = document.getElementById("engagement-avg-note");
+        if (note) {
+            const d7 = data.snapshotDays7d ?? 0;
+            const d30 = data.snapshotDays30d ?? 0;
+            note.textContent =
+                d30 === 0
+                    ? "No stored snapshots yet — use “Record snapshot now” to start history."
+                    : `Averages from ${d7} snapshot day(s) in last 7d / ${d30} in last 30d.`;
+        }
     } catch (e) {
         showError(e.message || "Failed to load engagement");
         document.getElementById("engagement-kpis").innerHTML = `<span class="muted">Error</span>`;
+    }
+}
+
+let engagementChart = null;
+
+function renderEngagementChart(points) {
+    const canvas = document.getElementById("engagement-chart");
+    if (!canvas || typeof Chart === "undefined") return;
+    const labels = (points || []).map((p) => p.date || "");
+    const dau = (points || []).map((p) => Number(p.dau) || 0);
+    const wau = (points || []).map((p) => Number(p.wau) || 0);
+    const mau = (points || []).map((p) => Number(p.mau) || 0);
+    if (engagementChart) {
+        engagementChart.destroy();
+        engagementChart = null;
+    }
+    engagementChart = new Chart(canvas, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: "DAU",
+                    data: dau,
+                    borderColor: "#0d9488",
+                    backgroundColor: "rgba(13, 148, 136, 0.12)",
+                    tension: 0.25,
+                    fill: false,
+                },
+                {
+                    label: "WAU",
+                    data: wau,
+                    borderColor: "#2563eb",
+                    backgroundColor: "rgba(37, 99, 235, 0.12)",
+                    tension: 0.25,
+                    fill: false,
+                },
+                {
+                    label: "MAU",
+                    data: mau,
+                    borderColor: "#b45309",
+                    backgroundColor: "rgba(180, 83, 9, 0.12)",
+                    tension: 0.25,
+                    fill: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                legend: { position: "top" },
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+            },
+        },
+    });
+}
+
+function renderEngagementHistoryTable(points, bucket) {
+    const el = document.getElementById("engagement-history-wrap");
+    if (!el) return;
+    if (!points || points.length === 0) {
+        el.innerHTML =
+            '<p class="muted">No snapshots in range. Record a snapshot to create the first row.</p>';
+        return;
+    }
+    const periodLabel = bucket === "week" ? "Week start" : bucket === "month" ? "Month" : "Date";
+    const rows = points
+        .map((p) => {
+            return (
+                `<tr>` +
+                `<td>${escapeHtml(p.date || "")}</td>` +
+                `<td>${fmtNum(p.dau)}</td>` +
+                `<td>${fmtNum(p.wau)}</td>` +
+                `<td>${fmtNum(p.mau)}</td>` +
+                `<td>${fmtNum(p.stickiness)}</td>` +
+                `<td>${fmtNum(p.signups)}</td>` +
+                `<td>${fmtNum(p.gamesCreated)}</td>` +
+                `<td>${fmtNum(p.usersTotal)}</td>` +
+                (p.daysInBucket != null ? `<td>${fmtNum(p.daysInBucket)}</td>` : "") +
+                `</tr>`
+            );
+        })
+        .join("");
+    const extraTh = bucket !== "day" ? "<th>Days</th>" : "";
+    el.innerHTML =
+        `<table class="timeline-table"><thead><tr>` +
+        `<th>${periodLabel}</th><th>DAU</th><th>WAU</th><th>MAU</th><th>Stickiness</th>` +
+        `<th>Signups</th><th>Games created</th><th>Users total</th>${extraTh}` +
+        `</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function loadEngagementHistory() {
+    showError("");
+    const fromEl = document.getElementById("eng-from");
+    const toEl = document.getElementById("eng-to");
+    const bucket = document.getElementById("eng-bucket")?.value || "day";
+    const from = fromEl?.value ? new Date(fromEl.value + "T00:00:00.000Z").toISOString() : "";
+    const to = toEl?.value ? new Date(toEl.value + "T23:59:59.999Z").toISOString() : "";
+    const p = new URLSearchParams();
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
+    p.set("bucket", bucket);
+
+    try {
+        const data = await adminFetch(`/admin/analytics/engagement-history?${p.toString()}`);
+        const avg = data.averages || {};
+        renderKpiGrid("engagement-range-kpis", [
+            ["Range avg DAU", fmtNum(avg.avgDau)],
+            ["Range avg WAU", fmtNum(avg.avgWau)],
+            ["Range avg MAU", fmtNum(avg.avgMau)],
+            ["Range avg stickiness", fmtNum(avg.avgStickiness)],
+            ["Snapshot days", avg.days ?? 0],
+        ]);
+        renderEngagementChart(data.points || []);
+        renderEngagementHistoryTable(data.points || [], data.bucket || bucket);
+    } catch (e) {
+        showError(e.message || "Failed to load engagement history");
+        const wrap = document.getElementById("engagement-history-wrap");
+        if (wrap) wrap.innerHTML = `<p class="muted">Error</p>`;
+    }
+}
+
+async function recordEngagementSnapshot() {
+    showError("");
+    try {
+        const data = await adminFetch("/admin/analytics/engagement-snapshot", {
+            method: "POST",
+            body: "{}",
+        });
+        const s = data.snapshot || {};
+        showError("");
+        await loadEngagement();
+        await loadEngagementHistory();
+        const note = document.getElementById("engagement-avg-note");
+        if (note && s.date) {
+            note.textContent = `Snapshot recorded for ${s.date} (DAU=${s.dau}, WAU=${s.wau}, MAU=${s.mau}).`;
+        }
+    } catch (e) {
+        showError(e.message || "Failed to record snapshot");
     }
 }
 
@@ -239,6 +408,14 @@ function exportUsersActivityCsv() {
         .catch((e) => showError(e.message || "Export failed"));
 }
 
+function distributionColumnLabel(labelKey) {
+    if (labelKey === "gender") return "Gender";
+    if (labelKey === "city") return "City";
+    if (labelKey === "version") return "Version";
+    if (labelKey === "platform") return "Platform";
+    return labelKey;
+}
+
 function renderDistributionTable(containerId, rows, labelKey, countKey) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -264,8 +441,69 @@ function renderDistributionTable(containerId, rows, labelKey, countKey) {
         .join("");
     el.innerHTML =
         `<table class="timeline-table"><thead><tr><th>${escapeHtml(
-            labelKey === "gender" ? "Gender" : "City"
+            distributionColumnLabel(labelKey)
         )}</th><th>Users</th><th>%</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function renderVersionPlatformTable(containerId, rows) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!rows || rows.length === 0) {
+        el.innerHTML = '<p class="muted">No known versions yet.</p>';
+        return;
+    }
+    const max = Math.max(...rows.map((r) => Number(r.count) || 0), 1);
+    const body = rows
+        .map((r) => {
+            const c = Number(r.count) || 0;
+            const bar = Math.round((c / max) * 100);
+            return (
+                `<tr>` +
+                `<td>${escapeHtml(r.version || "")}</td>` +
+                `<td>${escapeHtml(r.platform || "")}</td>` +
+                `<td>${c}</td>` +
+                `<td class="bar-cell"><div class="bar-fill" style="width:${bar}%"></div></td>` +
+                `</tr>`
+            );
+        })
+        .join("");
+    el.innerHTML =
+        `<table class="timeline-table"><thead><tr><th>Version</th><th>Platform</th><th>Users</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+async function loadAppVersions() {
+    showError("");
+    const kpis = document.getElementById("app-versions-kpis");
+    if (kpis) kpis.innerHTML = "Loading…";
+    try {
+        const data = await adminFetch("/admin/analytics/app-versions");
+        const withV = data.usersWithVersion ?? 0;
+        const total = data.usersTotal ?? 0;
+        const unknown = data.usersUnknownVersion ?? Math.max(0, total - withV);
+        const coverage =
+            total > 0 ? `${Math.round((withV / total) * 1000) / 10}%` : "—";
+        renderKpiGrid("app-versions-kpis", [
+            ["Users (total)", total || "—"],
+            ["With version recorded", withV],
+            ["Unknown / not yet seen", unknown],
+            ["Coverage", coverage],
+        ]);
+        renderDistributionTable("app-version-breakdown", data.byVersion || [], "version", "count");
+        renderDistributionTable("app-platform-breakdown", data.byPlatform || [], "platform", "count");
+        renderVersionPlatformTable("app-version-platform-breakdown", data.byVersionPlatform || []);
+    } catch (e) {
+        showError(e.message || "Failed to load app versions");
+        if (kpis) kpis.innerHTML = `<span class="muted">Error</span>`;
+        const ids = [
+            "app-version-breakdown",
+            "app-platform-breakdown",
+            "app-version-platform-breakdown",
+        ];
+        ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = `<p class="muted">Error</p>`;
+        });
+    }
 }
 
 async function loadDemographics() {
@@ -302,15 +540,20 @@ function initAnalyticsPage() {
     setDefaultDates();
     loadSnapshot();
     loadEngagement();
+    loadEngagementHistory();
     loadTimelines();
+    loadAppVersions();
     loadDemographics();
     loadUserActivity(1);
 }
 
 window.loadSnapshot = loadSnapshot;
 window.loadEngagement = loadEngagement;
+window.loadEngagementHistory = loadEngagementHistory;
+window.recordEngagementSnapshot = recordEngagementSnapshot;
 window.loadTimelines = loadTimelines;
 window.loadUserActivity = loadUserActivity;
+window.loadAppVersions = loadAppVersions;
 window.loadDemographics = loadDemographics;
 window.uaPrev = uaPrev;
 window.uaNext = uaNext;
