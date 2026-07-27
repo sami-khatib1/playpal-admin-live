@@ -24,6 +24,7 @@ function navigate(path) {
         '/users': 'users.html',
         '/user-activation': 'user-activation.html',
         '/group-stats': 'group-stats.html',
+        '/chat-monitor': 'chat-monitor.html',
         '/group-labels': 'group-labels.html',
         '/push-notifications': 'push-notifications.html',
         '/group-discovery-push': 'group-discovery-push.html',

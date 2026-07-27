@@ -157,6 +157,7 @@ async function loadEngagement() {
 }
 
 let engagementChart = null;
+let stickinessChart = null;
 
 function renderEngagementChart(points) {
     const canvas = document.getElementById("engagement-chart");
@@ -209,6 +210,55 @@ function renderEngagementChart(points) {
             },
             scales: {
                 y: { beginAtZero: true, ticks: { precision: 0 } },
+            },
+        },
+    });
+}
+
+function renderStickinessChart(points) {
+    const canvas = document.getElementById("stickiness-chart");
+    if (!canvas || typeof Chart === "undefined") return;
+    const labels = (points || []).map((p) => p.date || "");
+    const stickiness = (points || []).map((p) =>
+        p.stickiness != null && !Number.isNaN(Number(p.stickiness))
+            ? Number(p.stickiness)
+            : null
+    );
+    if (stickinessChart) {
+        stickinessChart.destroy();
+        stickinessChart = null;
+    }
+    stickinessChart = new Chart(canvas, {
+        type: "line",
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: "Stickiness (DAU/MAU)",
+                    data: stickiness,
+                    borderColor: "#7c3aed",
+                    backgroundColor: "rgba(124, 58, 237, 0.12)",
+                    tension: 0.25,
+                    fill: true,
+                    spanGaps: true,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                legend: { position: "top" },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: 1,
+                    ticks: {
+                        callback: (v) => Number(v).toFixed(2),
+                    },
+                },
             },
         },
     });
@@ -271,6 +321,7 @@ async function loadEngagementHistory() {
             ["Snapshot days", avg.days ?? 0],
         ]);
         renderEngagementChart(data.points || []);
+        renderStickinessChart(data.points || []);
         renderEngagementHistoryTable(data.points || [], data.bucket || bucket);
     } catch (e) {
         showError(e.message || "Failed to load engagement history");
