@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tokens / lastActive - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .table-wrap { overflow: auto; max-height: 72vh; }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+        .toolbar input[type="search"] {
+            flex: 1;
+            min-width: 220px;
+            max-width: 420px;
+            padding: 0.45rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
+        .pill {
+            display: inline-block;
+            padding: 0.12rem 0.45rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+        }
+        .pill-yes { background: #d1fae5; border-color: #86efac; color: #065f46; }
+        .pill-no { background: #f3f4f6; border-color: #d1d5db; color: #4b5563; }
+        .pagination {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+        tr.no-token td { opacity: 0.78; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Tokens / lastActive</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+
+        <p class="muted" style="margin-bottom: 1rem;">
+            Search active users by name, username, or email. Shows whether they have a push device token and their <code>lastActiveAt</code>.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">User lookup</h2>
+            </div>
+
+            <form class="toolbar" id="search-form" onsubmit="return false;">
+                <input
+                    id="user-search"
+                    type="search"
+                    placeholder="Search by name, username, or email…"
+                    autocomplete="off"
+                    aria-label="Search users"
+                />
+                <button class="btn btn-primary" type="button" id="search-btn">Search</button>
+            </form>
+
+            <div id="meta" class="muted">Type a name and search.</div>
+            <div id="loading" class="loading" style="display: none;">Searching…</div>
+
+            <div id="table-wrap" class="table-wrap" style="display: none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Device token</th>
+                            <th>Last active</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+
+            <div id="pagination" class="pagination" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/tokens-last-active.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            initTokensLastActive();
+        }
+    </script>
+</body>
+</html>

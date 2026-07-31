@@ -14,6 +14,7 @@ function navigate(path) {
         '/analytics': 'analytics.html',
         '/score': 'score.html',
         '/users': 'users.html',
+        '/tokens-last-active': 'tokens-last-active.html',
         '/user-activation': 'user-activation.html',
         '/group-stats': 'group-stats.html',
         '/chat-monitor': 'chat-monitor.html',
