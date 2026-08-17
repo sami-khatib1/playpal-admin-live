@@ -101,6 +101,11 @@ function fmtNum(v) {
     return String(v);
 }
 
+function fmtPct(v) {
+    if (v == null || Number.isNaN(Number(v))) return "—";
+    return `${(Number(v) * 100).toFixed(1)}%`;
+}
+
 async function loadSnapshot() {
     showError("");
     try {
@@ -117,10 +122,28 @@ async function loadSnapshot() {
             ["Pending upcoming (start ≥ now)", data.pendingGamesUpcoming ?? "—"],
             ["Users with lastActiveAt set", data.usersWithActivityRecorded ?? "—"],
             ["Unique game creators (30d)", data.uniqueGameCreatorsLast30d ?? "—"],
+            ["Repeat player-rate", fmtPct(data.repeatPlayerRate)],
+            ["Repeat organizer-rate", fmtPct(data.repeatOrganizerRate)],
+            ["Unique players (30d)", data.uniquePlayersLast30d ?? "—"],
+            ["Games filled % (30d)", fmtPct(data.gamesFilledRate)],
         ]);
+        const note = document.getElementById("snapshot-kpi-note");
+        if (note) {
+            const players = data.playersWithAtLeastOneGame ?? 0;
+            const orgs = data.organizersWithAtLeastOneGame ?? 0;
+            const filled = data.gamesFilledCount ?? 0;
+            const started = data.gamesStartedLast30d ?? 0;
+            note.textContent =
+                `Repeat player-rate: ${data.repeatPlayers ?? 0}/${players} players with 2+ past games. ` +
+                `Repeat organizer-rate: ${data.repeatOrganizers ?? 0}/${orgs} organizers with 2+ created games. ` +
+                `Unique players (30d): distinct participants in games that started in the last 30 days. ` +
+                `Games filled (30d): ${filled}/${started} started games that reached min participants.`;
+        }
     } catch (e) {
         showError(e.message || "Failed to load snapshot");
         document.getElementById("snapshot-kpis").innerHTML = `<span class="muted">Error</span>`;
+        const note = document.getElementById("snapshot-kpi-note");
+        if (note) note.textContent = "";
     }
 }
 
