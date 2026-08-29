@@ -18,6 +18,7 @@ const state = {
     selectAllMatching: false,
     matchingTotal: 0,
     selectedSports: new Set(),
+    selectedGame: null,
 };
 
 function escapeHtml(str) {
@@ -48,6 +49,17 @@ function showSuccess(msg) {
     el.style.display = "block";
 }
 
+function sportLabel(slug) {
+    return window.AdminSportLabels?.sportSlugToDisplayLabel(slug) || slug || "—";
+}
+
+function formatWhen(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
+}
+
 function getSegmentFilter() {
     return (document.getElementById("segment-filter")?.value || "").trim();
 }
@@ -56,18 +68,38 @@ function getSearchFilter() {
     return (document.getElementById("user-search")?.value || "").trim();
 }
 
+function getGenderFilter() {
+    return (document.getElementById("gender-filter")?.value || "").trim();
+}
+
+function getRadiusKm() {
+    const raw = (document.getElementById("radius-km")?.value || "").trim();
+    if (!raw) return null;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+}
+
+function getExcludeMembers() {
+    return (document.getElementById("members-filter")?.value || "exclude") !== "include";
+}
+
+function getGameId() {
+    return (document.getElementById("game-id")?.value || "").trim();
+}
+
 function getSportsFilterArray() {
     return Array.from(state.selectedSports);
 }
 
 function currentFiltersPayload() {
-    const sports = getSportsFilterArray();
-    const segment = getSegmentFilter();
-    const search = getSearchFilter();
     return {
-        segment: segment || null,
-        sports,
-        search: search || null,
+        segment: getSegmentFilter() || null,
+        sports: getSportsFilterArray(),
+        search: getSearchFilter() || null,
+        gender: getGenderFilter() || null,
+        radiusKm: getRadiusKm(),
+        excludeMembers: getExcludeMembers(),
     };
 }
 
@@ -78,10 +110,150 @@ function buildCandidatesQuery(page) {
     const segment = getSegmentFilter();
     const search = getSearchFilter();
     const sports = getSportsFilterArray();
+    const gender = getGenderFilter();
+    const radiusKm = getRadiusKm();
+    const gameId = getGameId();
     if (segment) params.set("segment", segment);
     if (search) params.set("search", search);
     if (sports.length) params.set("sports", sports.join(","));
+    if (gender) params.set("gender", gender);
+    if (radiusKm) params.set("radiusKm", String(radiusKm));
+    params.set("excludeMembers", getExcludeMembers() ? "true" : "false");
+    if (gameId) params.set("gameId", gameId);
     return params.toString();
+}
+
+function gameMetaLine(game) {
+    if (!game) return "";
+    const sport = sportLabel(game.sport);
+    const gender = game.genderRestriction || "mixed";
+    const when = formatWhen(game.dateTime);
+    const loc = game.hasLocation
+        ? game.venueName || game.city || "has location"
+        : "no location";
+    const group = game.communityName ? ` · ${game.communityName}` : "";
+    const spots = Number(game.participantCount) || 0;
+    return `${sport} · ${gender} · ${loc}${group}${when ? ` · ${when}` : ""} · ${spots} participants`;
+}
+
+function updateRadiusHint() {
+    const hint = document.getElementById("radius-hint");
+    if (!hint) return;
+    const game = state.selectedGame;
+    if (!game) {
+        hint.textContent = "Select a game with a location to filter by distance.";
+        return;
+    }
+    if (game.hasLocation) {
+        const where = game.venueName || game.city || "this game";
+        hint.textContent = `Distance is measured from ${where}. Empty = no radius filter.`;
+        return;
+    }
+    hint.textContent = "This game has no location — radius filter cannot be used.";
+}
+
+function renderSelectedGame() {
+    const el = document.getElementById("selected-game");
+    const game = state.selectedGame;
+    if (!el) return;
+    if (!game) {
+        el.style.display = "none";
+        el.innerHTML = "";
+        updateRadiusHint();
+        return;
+    }
+    el.style.display = "block";
+    el.innerHTML = `<div class="title">${escapeHtml(game.title || "Untitled game")}</div>
+        <div class="meta">${escapeHtml(gameMetaLine(game))}</div>`;
+    updateRadiusHint();
+}
+
+function selectGame(game, { reload = true } = {}) {
+    state.selectedGame = game || null;
+    const input = document.getElementById("game-id");
+    if (input && game?.id) input.value = game.id;
+    renderSelectedGame();
+    if (reload) {
+        clearSelection();
+        loadCandidates(1);
+    }
+}
+
+async function searchGames() {
+    const list = document.getElementById("game-search-results");
+    const token = getToken();
+    if (!list || !token) return;
+    const q = (document.getElementById("game-search")?.value || "").trim();
+    const gender = (document.getElementById("game-gender-filter")?.value || "").trim();
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (gender) params.set("gender", gender);
+    params.set("limit", "25");
+    try {
+        const response = await fetch(
+            `${getApiBaseUrl()}/admin/growth/game-push/games?${params.toString()}`,
+            { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } },
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            throw new Error(data?.error || data?.message || `Request failed (${response.status})`);
+        }
+        const results = data.results || [];
+        if (results.length === 0) {
+            list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">No upcoming activities match.</li>`;
+            return;
+        }
+        const selectedId = state.selectedGame?.id || getGameId();
+        list.innerHTML = results
+            .map((g) => {
+                const id = escapeHtml(g.id || "");
+                const selected = g.id === selectedId ? "selected" : "";
+                return `<li class="result-item ${selected}" data-game-id="${id}">
+                    <div class="title">${escapeHtml(g.title || "Untitled")}</div>
+                    <div class="meta">${escapeHtml(gameMetaLine(g))}</div>
+                </li>`;
+            })
+            .join("");
+        list.querySelectorAll(".result-item").forEach((item) => {
+            item.addEventListener("click", () => {
+                const id = item.getAttribute("data-game-id");
+                const match = results.find((g) => g.id === id);
+                if (match) selectGame(match);
+            });
+        });
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">${escapeHtml(e.message || "Failed to search activities")}</li>`;
+    }
+}
+
+async function resolveGameFromId(id) {
+    const token = getToken();
+    const gameId = (id || "").trim();
+    if (!token || !gameId) {
+        state.selectedGame = null;
+        renderSelectedGame();
+        return;
+    }
+    if (state.selectedGame?.id === gameId) return;
+    try {
+        const params = new URLSearchParams({ q: gameId, limit: "5" });
+        const response = await fetch(
+            `${getApiBaseUrl()}/admin/growth/game-push/games?${params.toString()}`,
+            { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } },
+        );
+        const data = await response.json().catch(() => ({}));
+        const match = (data.results || []).find((g) => g.id === gameId) || null;
+        selectGame(match, { reload: false });
+        if (match) {
+            const input = document.getElementById("game-id");
+            if (input) input.value = match.id;
+        }
+    } catch (e) {
+        console.error(e);
+        state.selectedGame = null;
+        renderSelectedGame();
+    }
 }
 
 function updateSelectionSummary() {
@@ -185,12 +357,15 @@ async function loadCandidates(page) {
 
         const users = data.users || [];
         const segLabel = getSegmentFilter() || "all segments";
-        const sportLabel =
+        const sportLabelText =
             getSportsFilterArray().length > 0
                 ? window.AdminSportLabels?.formatSportSlugList(getSportsFilterArray()) || getSportsFilterArray().join(", ")
                 : "any sport";
+        const genderLabel = getGenderFilter() || "all genders";
+        const radiusLabel = getRadiusKm() ? `${getRadiusKm()} km` : "no radius";
+        const membersLabel = getExcludeMembers() ? "excluding participants" : "including participants";
         if (meta) {
-            meta.textContent = `${state.total} matching · page ${state.page} · ${state.withTokenCount} with device token on this page · segment: ${segLabel} · sports: ${sportLabel}`;
+            meta.textContent = `${state.total} matching · page ${state.page} · ${state.withTokenCount} with device token on this page · ${segLabel} · ${genderLabel} · ${sportLabelText} · ${radiusLabel} · ${membersLabel}`;
         }
 
         if (tbody) {
@@ -199,6 +374,7 @@ async function loadCandidates(page) {
                     const id = escapeHtml(u.id || "");
                     const name = escapeHtml(u.name || "");
                     const username = escapeHtml(u.username || "");
+                    const gender = escapeHtml(u.gender || "—");
                     const segment = escapeHtml(u.segment || "");
                     const sports = window.AdminSportLabels
                         ? escapeHtml(window.AdminSportLabels.formatSportSlugList(u.favoriteSports))
@@ -211,6 +387,7 @@ async function loadCandidates(page) {
                         <td><input type="checkbox" class="user-check" data-user-id="${id}" /></td>
                         <td>${name}</td>
                         <td>${username}</td>
+                        <td>${gender}</td>
                         <td><span class="pill pill-${segment}">${segment.replace(/_/g, " ")}</span></td>
                         <td>${sports}</td>
                         <td>${tokenCell}</td>
@@ -314,7 +491,7 @@ function clearSelection() {
 }
 
 async function sendGameDiscoveryPush() {
-    const gameId = (document.getElementById("game-id")?.value || "").trim();
+    const gameId = getGameId();
     const title = (document.getElementById("push-title")?.value || "").trim();
     const body = (document.getElementById("push-body")?.value || "").trim();
     const token = getToken();
@@ -400,26 +577,59 @@ async function sendGameDiscoveryPush() {
     }
 }
 
-function initGameDiscoveryPush() {
-    renderSportsChips();
-    const seg = document.getElementById("segment-filter");
-    const search = document.getElementById("user-search");
-    if (seg) {
-        seg.addEventListener("change", () => {
+function bindFilterReload(el, { debounceMs = 0 } = {}) {
+    if (!el) return;
+    const eventName = el.tagName === "SELECT" || el.type === "number" ? "change" : "input";
+    let t;
+    el.addEventListener(eventName, () => {
+        const run = () => {
             clearSelection();
             loadCandidates(1);
+        };
+        if (debounceMs) {
+            clearTimeout(t);
+            t = setTimeout(run, debounceMs);
+        } else {
+            run();
+        }
+    });
+}
+
+function initGameDiscoveryPush() {
+    renderSportsChips();
+    searchGames();
+
+    const gameSearch = document.getElementById("game-search");
+    const gameGender = document.getElementById("game-gender-filter");
+    const gameId = document.getElementById("game-id");
+    let gameSearchTimer;
+    if (gameSearch) {
+        gameSearch.addEventListener("input", () => {
+            clearTimeout(gameSearchTimer);
+            gameSearchTimer = setTimeout(searchGames, 300);
         });
     }
-    if (search) {
-        let t;
-        search.addEventListener("input", () => {
-            clearTimeout(t);
-            t = setTimeout(() => {
+    if (gameGender) gameGender.addEventListener("change", searchGames);
+    if (gameId) {
+        let idTimer;
+        gameId.addEventListener("change", () => {
+            resolveGameFromId(gameId.value).then(() => {
                 clearSelection();
                 loadCandidates(1);
-            }, 350);
+            });
+        });
+        gameId.addEventListener("input", () => {
+            clearTimeout(idTimer);
+            idTimer = setTimeout(() => resolveGameFromId(gameId.value), 400);
         });
     }
+
+    bindFilterReload(document.getElementById("segment-filter"));
+    bindFilterReload(document.getElementById("gender-filter"));
+    bindFilterReload(document.getElementById("members-filter"));
+    bindFilterReload(document.getElementById("radius-km"));
+    bindFilterReload(document.getElementById("user-search"), { debounceMs: 350 });
+
     loadCandidates(1);
 }
 
@@ -431,3 +641,4 @@ window.clearSelection = clearSelection;
 window.sendGameDiscoveryPush = sendGameDiscoveryPush;
 window.prevPage = prevPage;
 window.nextPage = nextPage;
+window.searchGames = searchGames;

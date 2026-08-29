@@ -24,6 +24,31 @@
             margin-bottom: 0.75rem;
         }
         .filter-grid label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+        .result-list { list-style: none; margin: 0 0 0.75rem; padding: 0; max-height: 240px; overflow: auto; }
+        .result-item {
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 0.65rem 0.75rem;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            background: var(--color-surface);
+        }
+        .result-item:hover, .result-item.selected {
+            border-color: var(--color-primary);
+            background: rgba(43, 187, 173, 0.08);
+        }
+        .result-item .title { font-weight: 600; color: var(--color-text); }
+        .result-item .meta { font-size: 0.82rem; color: var(--color-text-secondary); margin-top: 0.2rem; }
+        .selected-entity {
+            border: 1px solid var(--color-primary);
+            background: rgba(43, 187, 173, 0.1);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+            margin-bottom: 0.85rem;
+        }
+        .selected-entity .title { font-weight: 700; }
+        .selected-entity .meta { font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.2rem; }
+        .hint { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.2rem; }
         .sports-chips {
             display: flex; flex-wrap: wrap; gap: 0.35rem;
         }
@@ -89,7 +114,7 @@
 
         <p class="muted card-section">
             Push-only growth message with <code>GAME_UPDATED</code> payload — tap opens <strong>game detail</strong>.
-            No inbox card. Filter by activation segment and favorite sports. Max <strong>500</strong> recipients per send.
+            No inbox card. Search an activity, then filter recipients by radius, gender, favorite sports, and whether they are already participants. Max <strong>500</strong> recipients per send.
         </p>
 
         <div class="card card-section">
@@ -97,8 +122,26 @@
                 <h2 class="card-title">Message &amp; game</h2>
             </div>
             <div class="form-stack" style="padding: 0 1rem 1rem;">
+                <div class="filter-grid">
+                    <div>
+                        <label for="game-search">Search activities by name</label>
+                        <input id="game-search" class="form-input" type="search" placeholder="Title, sport, venue, group, or ID…" autocomplete="off" />
+                    </div>
+                    <div>
+                        <label for="game-gender-filter">Gender of activity</label>
+                        <select id="game-gender-filter" class="form-input">
+                            <option value="">All</option>
+                            <option value="mixed">Mixed / open</option>
+                            <option value="female">Female</option>
+                            <option value="male">Male</option>
+                        </select>
+                    </div>
+                </div>
+                <ul id="game-search-results" class="result-list muted">Loading activities…</ul>
+                <div id="selected-game" class="selected-entity" style="display: none;"></div>
+
                 <label for="game-id">Game ID (UUID) — must be a pending (upcoming) game</label>
-                <input id="game-id" class="form-input" type="text" maxlength="80" placeholder="Game to open when user taps" autocomplete="off" />
+                <input id="game-id" class="form-input" type="text" maxlength="80" placeholder="Picked from search, or paste a UUID" autocomplete="off" />
 
                 <label for="push-title" style="margin-top: 0.75rem;">Title</label>
                 <input id="push-title" class="form-input" type="text" maxlength="120" placeholder="e.g. Join this game!" />
@@ -132,7 +175,27 @@
                         </select>
                     </div>
                     <div>
-                        <label for="user-search">Search</label>
+                        <label for="gender-filter">Gender for this push</label>
+                        <select id="gender-filter" class="form-input">
+                            <option value="">All genders</option>
+                            <option value="female">Female</option>
+                            <option value="male">Male</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="radius-km">Radius from game (km)</label>
+                        <input id="radius-km" class="form-input" type="number" min="1" max="500" step="1" placeholder="e.g. 20 — empty = no radius" />
+                        <p id="radius-hint" class="hint">Select a game with a location to filter by distance.</p>
+                    </div>
+                    <div>
+                        <label for="members-filter">Existing participants</label>
+                        <select id="members-filter" class="form-input">
+                            <option value="exclude" selected>Exclude existing participants</option>
+                            <option value="include">Include existing participants</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="user-search">Search users by name</label>
                         <input id="user-search" class="form-input" type="search" placeholder="Name, username, email…" />
                     </div>
                 </div>
@@ -158,6 +221,7 @@
                                 <th style="width:40px;"></th>
                                 <th>Name</th>
                                 <th>Username</th>
+                                <th>Gender</th>
                                 <th>Segment</th>
                                 <th>Sports</th>
                                 <th>Push</th>
