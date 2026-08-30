@@ -173,7 +173,7 @@ async function searchGroups() {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (gender) params.set("gender", gender);
-    params.set("limit", "25");
+    params.set("limit", "10000");
     try {
         const response = await fetch(
             `${getApiBaseUrl()}/admin/growth/group-push/communities?${params.toString()}`,
@@ -189,7 +189,8 @@ async function searchGroups() {
             return;
         }
         const selectedId = state.selectedGroup?.id || getCommunityId();
-        list.innerHTML = results
+        const countRow = `<li class="muted" style="padding:0.25rem 0 0.5rem;">${results.length} group${results.length === 1 ? "" : "s"}</li>`;
+        list.innerHTML = countRow + results
             .map((g) => {
                 const id = escapeHtml(g.id || "");
                 const sport = sportLabel(g.sport);

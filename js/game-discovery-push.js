@@ -188,7 +188,7 @@ async function searchGames() {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (gender) params.set("gender", gender);
-    params.set("limit", "25");
+    params.set("limit", "10000");
     try {
         const response = await fetch(
             `${getApiBaseUrl()}/admin/growth/game-push/games?${params.toString()}`,
@@ -200,11 +200,12 @@ async function searchGames() {
         }
         const results = data.results || [];
         if (results.length === 0) {
-            list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">No upcoming activities match.</li>`;
+            list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">No pending activities match.</li>`;
             return;
         }
         const selectedId = state.selectedGame?.id || getGameId();
-        list.innerHTML = results
+        const countRow = `<li class="muted" style="padding:0.25rem 0 0.5rem;">${results.length} activit${results.length === 1 ? "y" : "ies"}</li>`;
+        list.innerHTML = countRow + results
             .map((g) => {
                 const id = escapeHtml(g.id || "");
                 const selected = g.id === selectedId ? "selected" : "";
