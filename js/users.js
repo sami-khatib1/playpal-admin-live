@@ -91,6 +91,8 @@ function renderUsersRows(users) {
     if (!tbody) return;
     tbody.innerHTML = users
         .map((u) => {
+            const checked = u.shouldBeQuestioned ? "checked" : "";
+            const idAttr = escapeAttr(u.id || "");
             return `<tr>
                         <td>${escapeHtml(u.name || "")}</td>
                         <td>${escapeHtml(u.username || "")}</td>
@@ -101,6 +103,13 @@ function renderUsersRows(users) {
                         <td>${escapeHtml(formatAppVersion(u))}</td>
                         <td>${escapeHtml(formatDate(u.lastGameAt))}</td>
                         <td>${escapeHtml(u.accountType || "")}</td>
+                        <td>
+                            <label class="question-toggle">
+                                <input type="checkbox" ${checked} ${u.id ? "" : "disabled"}
+                                    onchange="toggleShouldBeQuestioned('${idAttr}', this.checked, this)" />
+                                Ask
+                            </label>
+                        </td>
                         <td>${formatStatus(u)}</td>
                     </tr>`;
         })
@@ -109,21 +118,30 @@ function renderUsersRows(users) {
 
 function applyFavoriteSportFilter() {
     const sel = document.getElementById("sport-filter");
+    const questionSel = document.getElementById("question-filter");
     const meta = document.getElementById("meta");
     const sport = sel ? sel.value : "";
-    const filtered = sport
+    const questionFilter = questionSel ? questionSel.value : "";
+    let filtered = sport
         ? cachedUsers.filter((u) => userMatchesFavoriteSportFilter(u, sport))
         : cachedUsers;
+    if (questionFilter === "yes") {
+        filtered = filtered.filter((u) => !!u.shouldBeQuestioned);
+    } else if (questionFilter === "no") {
+        filtered = filtered.filter((u) => !u.shouldBeQuestioned);
+    }
     const sortedFiltered = sortUsersByLastActiveDesc(filtered);
     currentFilteredUsers = sortedFiltered;
     if (meta) {
+        const parts = [`${filtered.length} of ${cachedUsers.length} users`];
         if (sport) {
             const sportLabel =
                 window.AdminSportLabels?.sportSlugToDisplayLabel(sport) || sport;
-            meta.textContent = `${filtered.length} of ${cachedUsers.length} users · favorite sport: ${sportLabel}`;
-        } else {
-            meta.textContent = `${cachedUsers.length} user${cachedUsers.length === 1 ? "" : "s"}`;
+            parts.push(`favorite sport: ${sportLabel}`);
         }
+        if (questionFilter === "yes") parts.push("should be questioned");
+        if (questionFilter === "no") parts.push("not flagged");
+        meta.textContent = parts.join(" · ");
     }
     renderUsersRows(sortedFiltered);
 }
@@ -246,6 +264,7 @@ function exportUsersCsv() {
         "App platform",
         "Last game",
         "Account",
+        "Should be questioned",
         "Deleted",
     ];
     const rows = users.map((u) => [
@@ -260,6 +279,7 @@ function exportUsersCsv() {
         u.lastAppPlatform || "",
         formatDate(u.lastGameAt),
         u.accountType || "",
+        u.shouldBeQuestioned ? "yes" : "no",
         u.deletedAt != null ? "yes" : "no",
     ]);
     const csv = [headers, ...rows]
@@ -316,11 +336,49 @@ async function loadUsers() {
 
 window.loadUsers = loadUsers;
 window.exportUsersCsv = exportUsersCsv;
+window.toggleShouldBeQuestioned = toggleShouldBeQuestioned;
+
+async function toggleShouldBeQuestioned(userId, checked, checkboxEl) {
+    const token = getToken();
+    if (!token || !userId) return;
+    showError("");
+    if (checkboxEl) checkboxEl.disabled = true;
+    try {
+        const response = await fetch(
+            `${getApiBaseUrl()}/admin/users/${encodeURIComponent(userId)}/should-be-questioned`,
+            {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ shouldBeQuestioned: !!checked }),
+            },
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            throw new Error(data?.error || data?.message || `Request failed (${response.status})`);
+        }
+        cachedUsers = cachedUsers.map((u) =>
+            u.id === userId ? { ...u, shouldBeQuestioned: !!checked } : u,
+        );
+        applyFavoriteSportFilter();
+    } catch (e) {
+        if (checkboxEl) checkboxEl.checked = !checked;
+        showError(e.message || "Failed to update question flag");
+    } finally {
+        if (checkboxEl) checkboxEl.disabled = false;
+    }
+}
 
 /** Script is loaded at end of body; sport-filter exists when this runs. */
 (function bindSportFilter() {
     const sel = document.getElementById("sport-filter");
     if (sel) {
         sel.addEventListener("change", () => applyFavoriteSportFilter());
+    }
+    const questionSel = document.getElementById("question-filter");
+    if (questionSel) {
+        questionSel.addEventListener("change", () => applyFavoriteSportFilter());
     }
 })();

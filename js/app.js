@@ -9,6 +9,7 @@ function navigate(path) {
         '/venue-requests': 'venue-requests.html',
         '/default-images': 'default-images.html',
         '/announcements': 'announcements.html',
+        '/questions': 'questions.html',
         '/help-us': 'help-us.html',
         '/activity-demands': 'activity-demands.html',
         '/analytics': 'analytics.html',
