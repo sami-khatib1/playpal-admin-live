@@ -54,6 +54,52 @@
         .option-row input { flex: 1; }
         .responses-card { margin-top: 2rem; }
         .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .recipient-search { position: relative; }
+        .recipient-results {
+            position: absolute;
+            z-index: 5;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            max-height: 240px;
+            overflow-y: auto;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .recipient-result {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.55rem 0.75rem;
+            border: none;
+            border-bottom: 1px solid var(--color-border);
+            background: transparent;
+            color: var(--color-text);
+            cursor: pointer;
+        }
+        .recipient-result:hover { background: var(--color-background); }
+        .recipient-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+        .recipient-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.5rem 0.25rem 0.65rem;
+            border-radius: 999px;
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            font-size: 0.88rem;
+        }
+        .recipient-chip button {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0 0.15rem;
+        }
     </style>
 </head>
 <body>
@@ -69,9 +115,26 @@
             <button class="btn btn-secondary" onclick="navigate('/dashboard')">← Back to Dashboard</button>
         </div>
         <p class="muted" style="margin-bottom: 1.5rem;">
-            Create multiple-choice questions shown in the app to users marked <strong>Should be questioned</strong> on the Users page.
-            Each question is shown once. After a user answers every active question, the flag is cleared.
+            Create multiple-choice questions. They are shown only to the users you select below.
+            Each question is shown once. After a user answers every active question, they are removed from the list.
         </p>
+
+        <div class="form-card">
+            <h3>Send questions to</h3>
+            <div id="recipients-success" class="success-message" style="display: none;"></div>
+            <div id="recipients-error" class="error-message" style="display: none;"></div>
+            <div class="form-group recipient-search">
+                <label for="recipient-search">Find by name</label>
+                <input type="text" id="recipient-search" placeholder="Type a name" autocomplete="off" />
+                <div id="recipient-results" class="recipient-results" style="display: none;"></div>
+                <p class="help-text">Pick people by name. Saving replaces the list: questions go only to the people shown below.</p>
+            </div>
+            <div id="recipient-chips" class="recipient-chips"></div>
+            <p id="recipient-empty" class="muted">No one selected. Questions will not be shown until you add people and save.</p>
+            <div style="margin-top: 1rem;">
+                <button type="button" class="btn btn-primary" id="save-recipients">Save recipients</button>
+            </div>
+        </div>
 
         <div class="form-card">
             <h3 id="form-title">Add question</h3>
@@ -149,6 +212,7 @@
             if (admin) document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
             resetForm();
             loadQuestions();
+            loadQuestionRecipients();
         }
     </script>
 </body>

@@ -186,7 +186,7 @@ async function saveQuestion(e) {
             successEl.textContent = "Question updated.";
         } else {
             await request("POST", "/admin/questions", payload);
-            successEl.textContent = "Question created. Mark users on the Users page to show it in the app.";
+            successEl.textContent = "Question created. It is shown only to the people selected above.";
         }
         successEl.style.display = "block";
         resetForm();
@@ -240,7 +240,149 @@ async function loadResponses(id) {
     }
 }
 
+var recipientDirectory = [];
+var selectedRecipients = [];
+
+function recipientLabel(user) {
+    var name = user.name || "Unnamed";
+    return user.username ? name + " (@" + user.username + ")" : name;
+}
+
+function renderRecipientChips() {
+    var chips = document.getElementById("recipient-chips");
+    var empty = document.getElementById("recipient-empty");
+    if (!chips) return;
+    chips.innerHTML = "";
+    selectedRecipients.forEach(function (user) {
+        var chip = document.createElement("span");
+        chip.className = "recipient-chip";
+        chip.innerHTML = escapeHtml(recipientLabel(user)) + '<button type="button" aria-label="Remove">×</button>';
+        chip.querySelector("button").addEventListener("click", function () {
+            selectedRecipients = selectedRecipients.filter(function (item) { return item.id !== user.id; });
+            renderRecipientChips();
+        });
+        chips.appendChild(chip);
+    });
+    if (empty) empty.style.display = selectedRecipients.length ? "none" : "block";
+}
+
+function hideRecipientResults() {
+    var box = document.getElementById("recipient-results");
+    if (box) box.style.display = "none";
+}
+
+function renderRecipientResults(query) {
+    var box = document.getElementById("recipient-results");
+    if (!box) return;
+    var needle = String(query || "").trim().toLowerCase();
+    if (!needle) {
+        hideRecipientResults();
+        return;
+    }
+    var selectedIds = {};
+    selectedRecipients.forEach(function (user) { selectedIds[user.id] = true; });
+    var matches = recipientDirectory.filter(function (user) {
+        if (!user.id || selectedIds[user.id] || user.deletedAt) return false;
+        return String(user.name || "").toLowerCase().indexOf(needle) !== -1;
+    }).slice(0, 8);
+    box.innerHTML = "";
+    if (!matches.length) {
+        box.innerHTML = '<div class="recipient-result" style="cursor: default;">No matching names</div>';
+        box.style.display = "block";
+        return;
+    }
+    matches.forEach(function (user) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "recipient-result";
+        btn.textContent = recipientLabel(user);
+        btn.addEventListener("click", function () {
+            selectedRecipients.push({ id: user.id, name: user.name || "", username: user.username || "" });
+            selectedRecipients.sort(function (a, b) {
+                return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" });
+            });
+            document.getElementById("recipient-search").value = "";
+            hideRecipientResults();
+            renderRecipientChips();
+        });
+        box.appendChild(btn);
+    });
+    box.style.display = "block";
+}
+
+async function loadQuestionRecipients() {
+    var errorEl = document.getElementById("recipients-error");
+    try {
+        var data = await request("GET", "/admin/users");
+        recipientDirectory = data.users || [];
+        selectedRecipients = recipientDirectory
+            .filter(function (user) { return user.shouldBeQuestioned && !user.deletedAt; })
+            .map(function (user) {
+                return { id: user.id, name: user.name || "", username: user.username || "" };
+            })
+            .sort(function (a, b) {
+                return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" });
+            });
+        renderRecipientChips();
+        if (errorEl) errorEl.style.display = "none";
+    } catch (e) {
+        if (errorEl) {
+            errorEl.textContent = e.message || "Failed to load users";
+            errorEl.style.display = "block";
+        }
+    }
+}
+
+async function saveRecipients() {
+    var successEl = document.getElementById("recipients-success");
+    var errorEl = document.getElementById("recipients-error");
+    if (successEl) successEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+    try {
+        var data = await request("PUT", "/admin/questions/recipients", {
+            userIds: selectedRecipients.map(function (user) { return user.id; }),
+        });
+        selectedRecipients = (data.recipients || []).map(function (user) {
+            return { id: user.id, name: user.name || "", username: user.username || "" };
+        });
+        recipientDirectory.forEach(function (user) {
+            user.shouldBeQuestioned = selectedRecipients.some(function (item) { return item.id === user.id; });
+        });
+        renderRecipientChips();
+        if (successEl) {
+            var count = data.count != null ? data.count : selectedRecipients.length;
+            successEl.textContent = count
+                ? "Questions will be sent only to " + count + (count === 1 ? " person." : " people.")
+                : "Questions will not be sent to anyone.";
+            successEl.style.display = "block";
+        }
+    } catch (e) {
+        if (errorEl) {
+            errorEl.textContent = e.message || "Failed to save recipients";
+            errorEl.style.display = "block";
+        }
+    }
+}
+
+function bindRecipientPicker() {
+    var input = document.getElementById("recipient-search");
+    var saveBtn = document.getElementById("save-recipients");
+    if (input) {
+        input.addEventListener("input", function () { renderRecipientResults(input.value); });
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest(".recipient-search")) hideRecipientResults();
+        });
+    }
+    if (saveBtn) saveBtn.addEventListener("click", saveRecipients);
+    if (window.DbTarget && typeof window.DbTarget.onChange === "function") {
+        window.DbTarget.onChange(function () { loadQuestionRecipients(); });
+    }
+}
+
+bindRecipientPicker();
+
 window.addOptionRow = addOptionRow;
 window.resetForm = resetForm;
 window.saveQuestion = saveQuestion;
 window.loadQuestions = loadQuestions;
+window.loadQuestionRecipients = loadQuestionRecipients;
