@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>In-App Questions - PlayPal Admin</title>
+    <title>Surveys - PlayPal Admin</title>
     <link rel="stylesheet" href="../styles/main.css">
     <link rel="stylesheet" href="../styles/layout.css">
     <link rel="stylesheet" href="../styles/dashboard.css">
@@ -20,7 +20,7 @@
         .form-card h3 { margin: 0 0 1rem 0; color: var(--color-text); }
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; font-weight: 500; margin-bottom: 0.35rem; color: var(--color-text); }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 0.5rem 0.75rem;
             border: 1px solid var(--color-border);
@@ -32,79 +32,39 @@
         .form-group textarea { min-height: 72px; resize: vertical; }
         .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
         .form-row .form-group { flex: 1; min-width: 140px; }
-        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-        .checkbox-group input[type="checkbox"] { width: auto; }
         .btn { padding: 0.5rem 1rem; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; }
         .btn-primary { background: var(--color-primary); color: white; }
         .btn-secondary { background: var(--color-border); color: var(--color-text); }
-        .btn-danger { background: #ef4444; color: white; }
         .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.9rem; }
+        .btn:disabled { opacity: 0.6; cursor: default; }
         .list-table { width: 100%; border-collapse: collapse; background: var(--color-surface); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .list-table th, .list-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--color-border); }
         .list-table th { background: var(--color-background); font-weight: 600; color: var(--color-text); }
-        .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
-        .badge-active { background: #10b981; color: white; }
-        .badge-inactive { background: #6b7280; color: white; }
-        .actions-cell { white-space: nowrap; }
-        .actions-cell button { margin-right: 0.5rem; margin-bottom: 0.25rem; }
-        .help-text { font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
+        .survey-row { cursor: pointer; }
+        .survey-row:hover { background: var(--color-background); }
+        .help-text, .muted { font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
         .error-message { background: #fee2e2; color: #991b1b; padding: 0.75rem; border-radius: 8px; }
         .success-message { background: #d1fae5; color: #065f46; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; }
-        .option-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
+        .option-row, .question-block { margin-bottom: 0.75rem; }
+        .question-block { border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem; }
+        .option-row { display: flex; gap: 0.5rem; align-items: center; }
         .option-row input { flex: 1; }
-        .responses-card { margin-top: 2rem; }
-        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
-        .recipient-search { position: relative; }
-        .recipient-results {
-            position: absolute;
-            z-index: 5;
-            left: 0;
-            right: 0;
-            top: calc(100% + 4px);
-            max-height: 240px;
-            overflow-y: auto;
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        }
-        .recipient-result {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 0.55rem 0.75rem;
-            border: none;
-            border-bottom: 1px solid var(--color-border);
-            background: transparent;
-            color: var(--color-text);
-            cursor: pointer;
-        }
-        .recipient-result:hover { background: var(--color-background); }
-        .recipient-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
-        .recipient-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.5rem 0.25rem 0.65rem;
-            border-radius: 999px;
-            background: var(--color-background);
-            border: 1px solid var(--color-border);
-            font-size: 0.88rem;
-        }
-        .recipient-chip button {
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            color: var(--color-text-secondary);
-            font-size: 1rem;
-            line-height: 1;
-            padding: 0 0.15rem;
-        }
+        .user-list { max-height: 280px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 8px; }
+        .user-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--color-border); }
+        .user-row input { width: auto; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+        .chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-background); font-size: 0.85rem; }
+        .chip button { border: none; background: transparent; cursor: pointer; color: var(--color-text-secondary); }
+        .bar-row { display: grid; grid-template-columns: minmax(80px, 28%) 1fr auto; gap: 0.5rem; align-items: center; margin: 0.35rem 0; }
+        .bar-track { height: 10px; background: var(--color-background); border-radius: 999px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--color-primary, #2563eb); border-radius: 999px; }
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>In-App Questions</h1>
+        <h1>Surveys</h1>
         <div class="header-actions">
             <span id="admin-name"></span>
             <button class="btn btn-secondary" onclick="logout()">Logout</button>
@@ -115,87 +75,97 @@
             <button class="btn btn-secondary" onclick="navigate('/dashboard')">← Back to Dashboard</button>
         </div>
         <p class="muted" style="margin-bottom: 1.5rem;">
-            Create multiple-choice questions. They are shown only to the users you select below.
-            Each question is shown once. After a user answers every active question, they are removed from the list.
+            Each survey has its own people and questions. Sending one does not change who receives the others.
+            People see the questions one at a time in the app.
         </p>
 
-        <div class="form-card">
-            <h3>Send questions to</h3>
-            <div id="recipients-success" class="success-message" style="display: none;"></div>
-            <div id="recipients-error" class="error-message" style="display: none;"></div>
-            <div class="form-group recipient-search">
-                <label for="recipient-search">Find by name</label>
-                <input type="text" id="recipient-search" placeholder="Type a name" autocomplete="off" />
-                <div id="recipient-results" class="recipient-results" style="display: none;"></div>
-                <p class="help-text">Pick people by name. Saving replaces the list: questions go only to the people shown below.</p>
+        <div id="list-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                <h3 style="margin:0;">Surveys</h3>
+                <button class="btn btn-primary" type="button" id="new-survey">New survey</button>
             </div>
-            <div id="recipient-chips" class="recipient-chips"></div>
-            <p id="recipient-empty" class="muted">No one selected. Questions will not be shown until you add people and save.</p>
+            <div id="list-error" class="error-message" style="display:none;"></div>
+            <div id="list-loading" class="muted">Loading...</div>
+            <div id="list-wrap" style="display:none;">
+                <table class="list-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>People</th>
+                            <th>Questions</th>
+                            <th>Sent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="builder" class="form-card" style="display:none;">
+            <h3>New survey</h3>
+            <div id="builder-success" class="success-message" style="display:none;"></div>
+            <div id="builder-error" class="error-message" style="display:none;"></div>
+            <div class="form-group">
+                <label for="survey-name">Name *</label>
+                <input type="text" id="survey-name" placeholder="e.g. September product check" />
+            </div>
+            <h3>People</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="user-search">Search</label>
+                    <input type="text" id="user-search" placeholder="Name or username" />
+                </div>
+                <div class="form-group">
+                    <label for="filter-city">City</label>
+                    <select id="filter-city"><option value="">All cities</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-sport">Favorite sport</label>
+                    <select id="filter-sport"><option value="">All sports</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-account">Account</label>
+                    <select id="filter-account">
+                        <option value="">All accounts</option>
+                        <option value="user">User</option>
+                        <option value="business">Business</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter-gender">Gender</label>
+                    <select id="filter-gender">
+                        <option value="">All genders</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="select-matching">Add everyone matching</button>
+                <span id="match-count" class="muted"></span>
+            </div>
+            <div id="user-list" class="user-list"></div>
+            <div id="selected-chips" class="chips"></div>
+            <p id="selected-empty" class="muted">No one selected.</p>
+
+            <h3 style="margin-top: 1.5rem;">Questions</h3>
+            <div id="question-blocks"></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="add-question">+ Add question</button>
             <div style="margin-top: 1rem;">
-                <button type="button" class="btn btn-primary" id="save-recipients">Save recipients</button>
+                <button type="button" class="btn btn-primary" id="send-survey">Send survey</button>
+                <button type="button" class="btn btn-secondary" id="cancel-survey">Cancel</button>
             </div>
         </div>
 
-        <div class="form-card">
-            <h3 id="form-title">Add question</h3>
-            <div id="form-success" class="success-message" style="display: none;"></div>
-            <div id="form-error" class="error-message" style="display: none;"></div>
-            <form id="question-form" onsubmit="return saveQuestion(event)">
-                <input type="hidden" id="question-id" />
-                <div class="form-group">
-                    <label for="title">Question *</label>
-                    <input type="text" id="title" required placeholder="e.g. How did you hear about Matchn?" />
-                </div>
-                <div class="form-group">
-                    <label for="content">Extra text (optional)</label>
-                    <textarea id="content" placeholder="Optional supporting copy"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Answers *</label>
-                    <div id="options-list"></div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="addOptionRow()">+ Add answer</button>
-                    <p class="help-text">At least two answers. Users pick one.</p>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="displayOrder">Display order</label>
-                        <input type="number" id="displayOrder" value="0" min="0" />
-                        <p class="help-text">Lower = shown first among unanswered questions.</p>
-                    </div>
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="isActive" checked />
-                        <label for="isActive">Active (show in app)</label>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem;">
-                    <button type="submit" class="btn btn-primary">Save</button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()" style="margin-left: 0.5rem;">Cancel / New</button>
-                </div>
-            </form>
-        </div>
-
-        <h3>Existing questions</h3>
-        <div id="loading-message" style="padding: 1rem; color: var(--color-text-secondary);">Loading...</div>
-        <div id="error-message" class="error-message" style="display: none;"></div>
-        <div id="list-wrap" style="display: none;">
-            <table class="list-table">
-                <thead>
-                    <tr>
-                        <th>Question</th>
-                        <th>Answers</th>
-                        <th>Order</th>
-                        <th>Responses</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="list-body"></tbody>
-            </table>
-        </div>
-
-        <div id="responses-wrap" class="form-card responses-card" style="display: none;">
-            <h3 id="responses-title">Responses</h3>
-            <div id="responses-body" class="muted">Select a question to view answers.</div>
+        <div id="results" class="form-card" style="display:none;">
+            <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center;">
+                <h3 id="results-title">Survey</h3>
+                <button type="button" class="btn btn-secondary btn-sm" id="close-results">Close</button>
+            </div>
+            <p id="results-meta" class="muted"></p>
+            <div id="results-error" class="error-message" style="display:none;"></div>
+            <div id="results-body"></div>
         </div>
     </div>
     <script src="../js/config.js"></script>
@@ -203,6 +173,7 @@
     <script src="../js/auth.js"></script>
     <script src="../js/app.js"></script>
     <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
     <script src="../js/questions.js"></script>
     <script>
         if (!isAuthenticated()) {
@@ -210,9 +181,7 @@
         } else {
             var admin = getCurrentAdmin();
             if (admin) document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
-            resetForm();
-            loadQuestions();
-            loadQuestionRecipients();
+            loadSurveys();
         }
     </script>
 </body>

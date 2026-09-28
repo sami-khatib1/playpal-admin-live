@@ -1,4 +1,4 @@
-// In-app questions (admin CRUD)
+// Surveys: each send has its own people and questions.
 
 function getApiBaseUrl() {
     return window.NetworkConfig?.API_BASE_URL || "http://localhost:3000/api";
@@ -18,7 +18,6 @@ function getErrorMessage(data, defaultMsg) {
 }
 
 async function request(method, path, body) {
-    var url = getApiBaseUrl() + path;
     var opts = {
         method: method,
         headers: {
@@ -29,7 +28,7 @@ async function request(method, path, body) {
     if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
         opts.body = JSON.stringify(body);
     }
-    var res = await fetch(url, opts);
+    var res = await fetch(getApiBaseUrl() + path, opts);
     var text = await res.text();
     var data = text ? JSON.parse(text) : null;
     if (!res.ok) throw new Error(getErrorMessage(data));
@@ -42,347 +41,391 @@ function escapeHtml(s) {
     return div.innerHTML;
 }
 
-function addOptionRow(value, optionId) {
-    var list = document.getElementById("options-list");
-    if (!list) return;
-    var row = document.createElement("div");
-    row.className = "option-row";
-    row.innerHTML =
-        '<input type="hidden" class="option-id" value="' + escapeHtml(optionId || "") + '" />' +
-        '<input type="text" class="option-text" placeholder="Answer" value="' + escapeHtml(value || "") + '" />' +
-        '<button type="button" class="btn btn-sm btn-secondary option-remove">Remove</button>';
-    row.querySelector(".option-remove").addEventListener("click", function () {
-        if (list.querySelectorAll(".option-row").length <= 2) {
-            alert("Keep at least two answers.");
-            return;
-        }
-        row.remove();
-    });
-    list.appendChild(row);
-}
+var directory = [];
+var selectedUsers = [];
 
-function collectOptions() {
-    var rows = document.querySelectorAll("#options-list .option-row");
-    var options = [];
-    rows.forEach(function (row, index) {
-        var text = (row.querySelector(".option-text")?.value || "").trim();
-        var id = (row.querySelector(".option-id")?.value || "").trim();
-        if (!text) return;
-        options.push({ id: id || undefined, text: text, displayOrder: index });
-    });
-    return options;
-}
-
-function resetForm() {
-    document.getElementById("form-title").textContent = "Add question";
-    document.getElementById("question-form").reset();
-    document.getElementById("question-id").value = "";
-    document.getElementById("displayOrder").value = "0";
-    document.getElementById("isActive").checked = true;
-    document.getElementById("form-success").style.display = "none";
-    document.getElementById("form-error").style.display = "none";
-    var list = document.getElementById("options-list");
-    list.innerHTML = "";
-    addOptionRow("");
-    addOptionRow("");
-}
-
-async function loadQuestions() {
-    var loading = document.getElementById("loading-message");
-    var listWrap = document.getElementById("list-wrap");
-    var listBody = document.getElementById("list-body");
-    var errEl = document.getElementById("error-message");
-    try {
-        var data = await request("GET", "/admin/questions");
-        loading.style.display = "none";
-        errEl.style.display = "none";
-        listWrap.style.display = "block";
-        listBody.innerHTML = "";
-        (data.questions || []).forEach(function (q) {
-            var tr = document.createElement("tr");
-            var answers = (q.options || []).map(function (o) { return o.text; }).join(", ");
-            tr.innerHTML =
-                "<td>" + escapeHtml(q.title || "") + "</td>" +
-                "<td>" + escapeHtml(answers) + "</td>" +
-                "<td>" + (q.displayOrder != null ? q.displayOrder : 0) + "</td>" +
-                "<td>" + (q.answerCount != null ? q.answerCount : 0) + "</td>" +
-                '<td><span class="badge ' + (q.isActive ? "badge-active" : "badge-inactive") + '">' +
-                (q.isActive ? "Active" : "Inactive") + "</span></td>" +
-                '<td class="actions-cell">' +
-                '<button class="btn btn-secondary btn-sm" data-edit="' + q.id + '">Edit</button> ' +
-                '<button class="btn btn-secondary btn-sm" data-responses="' + q.id + '">Responses</button> ' +
-                '<button class="btn btn-danger btn-sm" data-delete="' + q.id + '">Delete</button>' +
-                "</td>";
-            listBody.appendChild(tr);
-        });
-        listBody.querySelectorAll("[data-edit]").forEach(function (btn) {
-            btn.addEventListener("click", function () { editQuestion(btn.getAttribute("data-edit")); });
-        });
-        listBody.querySelectorAll("[data-responses]").forEach(function (btn) {
-            btn.addEventListener("click", function () { loadResponses(btn.getAttribute("data-responses")); });
-        });
-        listBody.querySelectorAll("[data-delete]").forEach(function (btn) {
-            btn.addEventListener("click", function () { deleteQuestion(btn.getAttribute("data-delete")); });
-        });
-    } catch (e) {
-        loading.style.display = "none";
-        listWrap.style.display = "none";
-        errEl.textContent = e.message || "Failed to load questions";
-        errEl.style.display = "block";
-    }
-}
-
-async function editQuestion(id) {
-    try {
-        var q = await request("GET", "/admin/questions/" + id);
-        document.getElementById("form-title").textContent = "Edit question";
-        document.getElementById("question-id").value = q.id;
-        document.getElementById("title").value = q.title || "";
-        document.getElementById("content").value = q.content || "";
-        document.getElementById("displayOrder").value = q.displayOrder != null ? q.displayOrder : 0;
-        document.getElementById("isActive").checked = q.isActive !== false;
-        document.getElementById("form-success").style.display = "none";
-        document.getElementById("form-error").style.display = "none";
-        var list = document.getElementById("options-list");
-        list.innerHTML = "";
-        var options = q.options || [];
-        if (options.length < 2) {
-            addOptionRow("");
-            addOptionRow("");
-        } else {
-            options.forEach(function (opt) {
-                addOptionRow(opt.text || "", opt.id);
-            });
-        }
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (e) {
-        alert(e.message || "Failed to load question");
-    }
-}
-
-async function saveQuestion(e) {
-    e.preventDefault();
-    var id = document.getElementById("question-id").value;
-    var options = collectOptions();
-    var payload = {
-        title: document.getElementById("title").value.trim(),
-        content: document.getElementById("content").value.trim() || null,
-        displayOrder: parseInt(document.getElementById("displayOrder").value, 10) || 0,
-        isActive: document.getElementById("isActive").checked,
-        options: options,
-    };
-    var successEl = document.getElementById("form-success");
-    var errorEl = document.getElementById("form-error");
-    successEl.style.display = "none";
-    errorEl.style.display = "none";
-    if (options.length < 2) {
-        errorEl.textContent = "Add at least two answers.";
-        errorEl.style.display = "block";
-        return false;
-    }
-    try {
-        if (id) {
-            await request("PUT", "/admin/questions/" + id, payload);
-            successEl.textContent = "Question updated.";
-        } else {
-            await request("POST", "/admin/questions", payload);
-            successEl.textContent = "Question created. It is shown only to the people selected above.";
-        }
-        successEl.style.display = "block";
-        resetForm();
-        loadQuestions();
-    } catch (err) {
-        errorEl.textContent = err.message || "Save failed";
-        errorEl.style.display = "block";
-    }
-    return false;
-}
-
-async function deleteQuestion(id) {
-    if (!confirm("Delete this question and its answers? This cannot be undone.")) return;
-    try {
-        await request("DELETE", "/admin/questions/" + id);
-        document.getElementById("responses-wrap").style.display = "none";
-        loadQuestions();
-        resetForm();
-    } catch (e) {
-        alert(e.message || "Delete failed");
-    }
-}
-
-async function loadResponses(id) {
-    var wrap = document.getElementById("responses-wrap");
-    var title = document.getElementById("responses-title");
-    var body = document.getElementById("responses-body");
-    wrap.style.display = "block";
-    body.textContent = "Loading…";
-    try {
-        var data = await request("GET", "/admin/questions/" + id + "/responses");
-        title.textContent = "Responses — " + (data.question?.title || "");
-        var rows = data.responses || [];
-        if (!rows.length) {
-            body.textContent = "No answers yet.";
-            return;
-        }
-        var table =
-            '<table class="list-table"><thead><tr><th>User</th><th>Username</th><th>Answer</th><th>When</th></tr></thead><tbody>' +
-            rows.map(function (r) {
-                return "<tr><td>" + escapeHtml(r.user?.name || "") + "</td><td>" +
-                    escapeHtml(r.user?.username || "") + "</td><td>" +
-                    escapeHtml(r.optionText || "") + "</td><td>" +
-                    (r.answeredAt ? new Date(r.answeredAt).toLocaleString() : "") +
-                    "</td></tr>";
-            }).join("") +
-            "</tbody></table>";
-        body.innerHTML = table;
-    } catch (e) {
-        body.textContent = e.message || "Failed to load responses";
-    }
-}
-
-var recipientDirectory = [];
-var selectedRecipients = [];
-
-function recipientLabel(user) {
+function userLabel(user) {
     var name = user.name || "Unnamed";
     return user.username ? name + " (@" + user.username + ")" : name;
 }
 
-function renderRecipientChips() {
-    var chips = document.getElementById("recipient-chips");
-    var empty = document.getElementById("recipient-empty");
+function sportLabel(slug) {
+    return window.AdminSportLabels?.sportSlugToDisplayLabel(slug) || slug;
+}
+
+function eligibleUsers() {
+    return directory.filter(function (user) {
+        return user.id && !user.deletedAt && user.accountType !== "guest";
+    });
+}
+
+function selectedFilters() {
+    return {
+        query: (document.getElementById("user-search")?.value || "").trim().toLowerCase(),
+        city: document.getElementById("filter-city")?.value || "",
+        sport: document.getElementById("filter-sport")?.value || "",
+        account: document.getElementById("filter-account")?.value || "",
+        gender: document.getElementById("filter-gender")?.value || "",
+    };
+}
+
+function userMatches(user, filters) {
+    if (filters.query) {
+        var name = String(user.name || "").toLowerCase();
+        var username = String(user.username || "").toLowerCase();
+        if (name.indexOf(filters.query) === -1 && username.indexOf(filters.query) === -1) return false;
+    }
+    if (filters.city && String(user.city || "") !== filters.city) return false;
+    if (filters.account && String(user.accountType || "user") !== filters.account) return false;
+    if (filters.gender && String(user.gender || "") !== filters.gender) return false;
+    if (filters.sport) {
+        var sports = Array.isArray(user.favoriteSports) ? user.favoriteSports : [];
+        var needle = filters.sport.toLowerCase();
+        if (!sports.some(function (sport) { return String(sport).toLowerCase() === needle; })) return false;
+    }
+    return true;
+}
+
+function matchingUsers() {
+    var filters = selectedFilters();
+    return eligibleUsers().filter(function (user) { return userMatches(user, filters); });
+}
+
+function fillFilterOptions() {
+    var users = eligibleUsers();
+    var citySel = document.getElementById("filter-city");
+    var sportSel = document.getElementById("filter-sport");
+    var cities = [];
+    var sports = [];
+    users.forEach(function (user) {
+        var city = String(user.city || "").trim();
+        if (city && cities.indexOf(city) === -1) cities.push(city);
+        (user.favoriteSports || []).forEach(function (sport) {
+            var raw = String(sport || "").trim();
+            if (raw && sports.indexOf(raw) === -1) sports.push(raw);
+        });
+    });
+    cities.sort(function (a, b) { return a.localeCompare(b); });
+    if (window.AdminSportLabels?.mergeSportOptions) sports = window.AdminSportLabels.mergeSportOptions(sports);
+    else sports.sort(function (a, b) { return a.localeCompare(b); });
+    if (citySel) {
+        var prevCity = citySel.value;
+        citySel.innerHTML = '<option value="">All cities</option>' + cities.map(function (city) {
+            return '<option value="' + escapeHtml(city) + '">' + escapeHtml(city) + "</option>";
+        }).join("");
+        citySel.value = cities.indexOf(prevCity) >= 0 ? prevCity : "";
+    }
+    if (sportSel) {
+        var prevSport = sportSel.value;
+        sportSel.innerHTML = '<option value="">All sports</option>' + sports.map(function (sport) {
+            return '<option value="' + escapeHtml(sport) + '">' + escapeHtml(sportLabel(sport)) + "</option>";
+        }).join("");
+        sportSel.value = sports.indexOf(prevSport) >= 0 ? prevSport : "";
+    }
+}
+
+function renderSelected() {
+    var chips = document.getElementById("selected-chips");
+    var empty = document.getElementById("selected-empty");
     if (!chips) return;
     chips.innerHTML = "";
-    selectedRecipients.forEach(function (user) {
+    selectedUsers.forEach(function (user) {
         var chip = document.createElement("span");
-        chip.className = "recipient-chip";
-        chip.innerHTML = escapeHtml(recipientLabel(user)) + '<button type="button" aria-label="Remove">×</button>';
+        chip.className = "chip";
+        chip.innerHTML = escapeHtml(userLabel(user)) + '<button type="button" aria-label="Remove">×</button>';
         chip.querySelector("button").addEventListener("click", function () {
-            selectedRecipients = selectedRecipients.filter(function (item) { return item.id !== user.id; });
-            renderRecipientChips();
+            selectedUsers = selectedUsers.filter(function (item) { return item.id !== user.id; });
+            renderSelected();
+            renderUserList();
         });
         chips.appendChild(chip);
     });
-    if (empty) empty.style.display = selectedRecipients.length ? "none" : "block";
+    if (empty) empty.style.display = selectedUsers.length ? "none" : "block";
 }
 
-function hideRecipientResults() {
-    var box = document.getElementById("recipient-results");
-    if (box) box.style.display = "none";
-}
-
-function renderRecipientResults(query) {
-    var box = document.getElementById("recipient-results");
-    if (!box) return;
-    var needle = String(query || "").trim().toLowerCase();
-    if (!needle) {
-        hideRecipientResults();
+function renderUserList() {
+    var list = document.getElementById("user-list");
+    var countEl = document.getElementById("match-count");
+    if (!list) return;
+    var matches = matchingUsers().slice(0, 80);
+    var total = matchingUsers().length;
+    if (countEl) countEl.textContent = total + " matching · " + selectedUsers.length + " selected";
+    list.innerHTML = "";
+    if (!matches.length) {
+        list.innerHTML = '<div class="user-row muted">No matching people</div>';
         return;
     }
     var selectedIds = {};
-    selectedRecipients.forEach(function (user) { selectedIds[user.id] = true; });
-    var matches = recipientDirectory.filter(function (user) {
-        if (!user.id || selectedIds[user.id] || user.deletedAt) return false;
-        return String(user.name || "").toLowerCase().indexOf(needle) !== -1;
-    }).slice(0, 8);
-    box.innerHTML = "";
-    if (!matches.length) {
-        box.innerHTML = '<div class="recipient-result" style="cursor: default;">No matching names</div>';
-        box.style.display = "block";
+    selectedUsers.forEach(function (user) { selectedIds[user.id] = true; });
+    matches.forEach(function (user) {
+        var row = document.createElement("label");
+        row.className = "user-row";
+        var box = document.createElement("input");
+        box.type = "checkbox";
+        box.checked = !!selectedIds[user.id];
+        box.addEventListener("change", function () {
+            if (box.checked) {
+                if (!selectedIds[user.id]) {
+                    selectedUsers.push({ id: user.id, name: user.name || "", username: user.username || "" });
+                }
+            } else {
+                selectedUsers = selectedUsers.filter(function (item) { return item.id !== user.id; });
+            }
+            renderSelected();
+            if (countEl) countEl.textContent = total + " matching · " + selectedUsers.length + " selected";
+        });
+        var text = document.createElement("span");
+        var city = user.city ? " · " + user.city : "";
+        text.textContent = userLabel(user) + city;
+        row.appendChild(box);
+        row.appendChild(text);
+        list.appendChild(row);
+    });
+}
+
+function addQuestionBlock() {
+    var wrap = document.getElementById("question-blocks");
+    if (!wrap) return;
+    var block = document.createElement("div");
+    block.className = "question-block";
+    block.innerHTML =
+        '<div class="form-group"><label>Question *</label><input type="text" class="q-title" placeholder="Question" /></div>' +
+        '<div class="form-group"><label>Extra text</label><input type="text" class="q-content" placeholder="Optional" /></div>' +
+        '<div class="q-options"></div>' +
+        '<button type="button" class="btn btn-secondary btn-sm q-add">+ Add answer</button> ' +
+        '<button type="button" class="btn btn-secondary btn-sm q-remove">Remove question</button>';
+    function addOption(value) {
+        var row = document.createElement("div");
+        row.className = "option-row";
+        row.innerHTML = '<input type="text" class="q-option" placeholder="Answer" value="' + escapeHtml(value || "") + '" />' +
+            '<button type="button" class="btn btn-sm btn-secondary">Remove</button>';
+        row.querySelector("button").addEventListener("click", function () {
+            if (block.querySelectorAll(".q-option").length <= 2) return;
+            row.remove();
+        });
+        block.querySelector(".q-options").appendChild(row);
+    }
+    addOption("");
+    addOption("");
+    block.querySelector(".q-add").addEventListener("click", function () { addOption(""); });
+    block.querySelector(".q-remove").addEventListener("click", function () {
+        if (wrap.querySelectorAll(".question-block").length <= 1) return;
+        block.remove();
+    });
+    wrap.appendChild(block);
+}
+
+function collectQuestions() {
+    return Array.prototype.map.call(document.querySelectorAll(".question-block"), function (block) {
+        return {
+            title: (block.querySelector(".q-title")?.value || "").trim(),
+            content: (block.querySelector(".q-content")?.value || "").trim(),
+            options: Array.prototype.map.call(block.querySelectorAll(".q-option"), function (input) {
+                return { text: input.value.trim() };
+            }).filter(function (option) { return option.text; }),
+        };
+    });
+}
+
+function resetBuilder() {
+    selectedUsers = [];
+    document.getElementById("survey-name").value = "";
+    document.getElementById("user-search").value = "";
+    ["filter-city", "filter-sport", "filter-account", "filter-gender"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    document.getElementById("question-blocks").innerHTML = "";
+    addQuestionBlock();
+    document.getElementById("builder-success").style.display = "none";
+    document.getElementById("builder-error").style.display = "none";
+    renderSelected();
+    renderUserList();
+}
+
+async function ensureDirectory() {
+    if (directory.length) return;
+    var data = await request("GET", "/admin/users");
+    directory = data.users || [];
+    fillFilterOptions();
+}
+
+async function openBuilder() {
+    var errorEl = document.getElementById("builder-error");
+    document.getElementById("builder").style.display = "block";
+    document.getElementById("results").style.display = "none";
+    try {
+        await ensureDirectory();
+        resetBuilder();
+    } catch (e) {
+        errorEl.textContent = e.message || "Failed to load users";
+        errorEl.style.display = "block";
+    }
+}
+
+function renderBars(question) {
+    var max = Math.max.apply(null, question.options.map(function (option) { return option.count; }).concat([1]));
+    return question.options.map(function (option) {
+        var width = Math.round((option.count / max) * 100);
+        return '<div class="bar-row"><span>' + escapeHtml(option.text) + '</span>' +
+            '<div class="bar-track"><div class="bar-fill" style="width:' + width + '%"></div></div>' +
+            "<span>" + option.count + "</span></div>";
+    }).join("");
+}
+
+function personList(people) {
+    if (!people.length) return '<p class="muted">None</p>';
+    return "<ul>" + people.map(function (person) {
+        return "<li>" + escapeHtml(userLabel(person)) + "</li>";
+    }).join("") + "</ul>";
+}
+
+async function openSurvey(id) {
+    var wrap = document.getElementById("results");
+    var body = document.getElementById("results-body");
+    var errorEl = document.getElementById("results-error");
+    document.getElementById("builder").style.display = "none";
+    wrap.style.display = "block";
+    body.textContent = "Loading…";
+    errorEl.style.display = "none";
+    try {
+        var survey = await request("GET", "/admin/surveys/" + encodeURIComponent(id));
+        document.getElementById("results-title").textContent = survey.name || "Survey";
+        document.getElementById("results-meta").textContent =
+            (survey.answeredCount || 0) + " of " + (survey.recipientCount || 0) +
+            " finished every question" +
+            (survey.sentAt ? " · sent " + new Date(survey.sentAt).toLocaleString() : "");
+        var answered = (survey.recipients || []).filter(function (person) { return person.status === "answered"; });
+        var partial = (survey.recipients || []).filter(function (person) { return person.status === "partial"; });
+        var pending = (survey.recipients || []).filter(function (person) { return person.status === "not_answered"; });
+        var charts = (survey.questions || []).map(function (question, index) {
+            return "<h3>" + (index + 1) + ". " + escapeHtml(question.title) + "</h3>" +
+                '<p class="muted">' + question.responseCount + " answers</p>" + renderBars(question);
+        }).join("");
+        body.innerHTML =
+            '<div class="split"><div><h3>Answered</h3>' + personList(answered) +
+            (partial.length ? "<h3>Answered some</h3>" + personList(partial) : "") +
+            "</div><div><h3>Did not answer</h3>" + personList(pending) + "</div></div>" +
+            charts;
+    } catch (e) {
+        body.textContent = "";
+        errorEl.textContent = e.message || "Failed to load survey";
+        errorEl.style.display = "block";
+    }
+}
+
+async function loadSurveys() {
+    var loading = document.getElementById("list-loading");
+    var wrap = document.getElementById("list-wrap");
+    var body = document.getElementById("list-body");
+    var errorEl = document.getElementById("list-error");
+    try {
+        var data = await request("GET", "/admin/surveys");
+        loading.style.display = "none";
+        errorEl.style.display = "none";
+        wrap.style.display = "block";
+        body.innerHTML = "";
+        var surveys = data.surveys || [];
+        if (!surveys.length) {
+            body.innerHTML = '<tr><td colspan="4" class="muted">No surveys yet.</td></tr>';
+            return;
+        }
+        surveys.forEach(function (survey) {
+            var tr = document.createElement("tr");
+            tr.className = "survey-row";
+            tr.innerHTML =
+                "<td>" + escapeHtml(survey.name || "") + "</td>" +
+                "<td>" + (survey.recipientCount || 0) + "</td>" +
+                "<td>" + (survey.questionCount || 0) + "</td>" +
+                "<td>" + (survey.sentAt ? new Date(survey.sentAt).toLocaleString() : "") + "</td>";
+            tr.addEventListener("click", function () { openSurvey(survey.id); });
+            body.appendChild(tr);
+        });
+    } catch (e) {
+        loading.style.display = "none";
+        wrap.style.display = "none";
+        errorEl.textContent = e.message || "Failed to load surveys";
+        errorEl.style.display = "block";
+    }
+}
+
+async function sendSurvey() {
+    var successEl = document.getElementById("builder-success");
+    var errorEl = document.getElementById("builder-error");
+    var button = document.getElementById("send-survey");
+    successEl.style.display = "none";
+    errorEl.style.display = "none";
+    var questions = collectQuestions().filter(function (question) {
+        return question.title && question.options.length >= 2;
+    });
+    if (!document.getElementById("survey-name").value.trim()) {
+        errorEl.textContent = "Name the survey.";
+        errorEl.style.display = "block";
         return;
     }
-    matches.forEach(function (user) {
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "recipient-result";
-        btn.textContent = recipientLabel(user);
-        btn.addEventListener("click", function () {
-            selectedRecipients.push({ id: user.id, name: user.name || "", username: user.username || "" });
-            selectedRecipients.sort(function (a, b) {
-                return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" });
-            });
-            document.getElementById("recipient-search").value = "";
-            hideRecipientResults();
-            renderRecipientChips();
+    if (!selectedUsers.length) {
+        errorEl.textContent = "Choose at least one person.";
+        errorEl.style.display = "block";
+        return;
+    }
+    if (!questions.length) {
+        errorEl.textContent = "Add at least one question with two answers.";
+        errorEl.style.display = "block";
+        return;
+    }
+    button.disabled = true;
+    try {
+        await request("POST", "/admin/surveys", {
+            name: document.getElementById("survey-name").value.trim(),
+            userIds: selectedUsers.map(function (user) { return user.id; }),
+            questions: questions,
         });
-        box.appendChild(btn);
+        successEl.textContent = "Survey sent.";
+        successEl.style.display = "block";
+        document.getElementById("builder").style.display = "none";
+        loadSurveys();
+    } catch (e) {
+        errorEl.textContent = e.message || "Failed to send survey";
+        errorEl.style.display = "block";
+    } finally {
+        button.disabled = false;
+    }
+}
+
+function bindSurveyPage() {
+    document.getElementById("new-survey")?.addEventListener("click", openBuilder);
+    document.getElementById("cancel-survey")?.addEventListener("click", function () {
+        document.getElementById("builder").style.display = "none";
     });
-    box.style.display = "block";
-}
-
-async function loadQuestionRecipients() {
-    var errorEl = document.getElementById("recipients-error");
-    try {
-        var data = await request("GET", "/admin/users");
-        recipientDirectory = data.users || [];
-        selectedRecipients = recipientDirectory
-            .filter(function (user) { return user.shouldBeQuestioned && !user.deletedAt; })
-            .map(function (user) {
-                return { id: user.id, name: user.name || "", username: user.username || "" };
-            })
-            .sort(function (a, b) {
-                return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "base" });
-            });
-        renderRecipientChips();
-        if (errorEl) errorEl.style.display = "none";
-    } catch (e) {
-        if (errorEl) {
-            errorEl.textContent = e.message || "Failed to load users";
-            errorEl.style.display = "block";
-        }
-    }
-}
-
-async function saveRecipients() {
-    var successEl = document.getElementById("recipients-success");
-    var errorEl = document.getElementById("recipients-error");
-    if (successEl) successEl.style.display = "none";
-    if (errorEl) errorEl.style.display = "none";
-    try {
-        var data = await request("PUT", "/admin/questions/recipients", {
-            userIds: selectedRecipients.map(function (user) { return user.id; }),
+    document.getElementById("add-question")?.addEventListener("click", addQuestionBlock);
+    document.getElementById("send-survey")?.addEventListener("click", sendSurvey);
+    document.getElementById("close-results")?.addEventListener("click", function () {
+        document.getElementById("results").style.display = "none";
+    });
+    document.getElementById("select-matching")?.addEventListener("click", function () {
+        var selectedIds = {};
+        selectedUsers.forEach(function (user) { selectedIds[user.id] = true; });
+        matchingUsers().forEach(function (user) {
+            if (!selectedIds[user.id]) {
+                selectedUsers.push({ id: user.id, name: user.name || "", username: user.username || "" });
+            }
         });
-        selectedRecipients = (data.recipients || []).map(function (user) {
-            return { id: user.id, name: user.name || "", username: user.username || "" };
-        });
-        recipientDirectory.forEach(function (user) {
-            user.shouldBeQuestioned = selectedRecipients.some(function (item) { return item.id === user.id; });
-        });
-        renderRecipientChips();
-        if (successEl) {
-            var count = data.count != null ? data.count : selectedRecipients.length;
-            successEl.textContent = count
-                ? "Questions will be sent only to " + count + (count === 1 ? " person." : " people.")
-                : "Questions will not be sent to anyone.";
-            successEl.style.display = "block";
-        }
-    } catch (e) {
-        if (errorEl) {
-            errorEl.textContent = e.message || "Failed to save recipients";
-            errorEl.style.display = "block";
-        }
-    }
-}
-
-function bindRecipientPicker() {
-    var input = document.getElementById("recipient-search");
-    var saveBtn = document.getElementById("save-recipients");
-    if (input) {
-        input.addEventListener("input", function () { renderRecipientResults(input.value); });
-        document.addEventListener("click", function (event) {
-            if (!event.target.closest(".recipient-search")) hideRecipientResults();
-        });
-    }
-    if (saveBtn) saveBtn.addEventListener("click", saveRecipients);
+        renderSelected();
+        renderUserList();
+    });
+    ["user-search", "filter-city", "filter-sport", "filter-account", "filter-gender"].forEach(function (id) {
+        document.getElementById(id)?.addEventListener("input", renderUserList);
+        document.getElementById(id)?.addEventListener("change", renderUserList);
+    });
     if (window.DbTarget && typeof window.DbTarget.onChange === "function") {
-        window.DbTarget.onChange(function () { loadQuestionRecipients(); });
+        window.DbTarget.onChange(function () {
+            directory = [];
+            selectedUsers = [];
+            loadSurveys();
+            if (document.getElementById("builder").style.display !== "none") openBuilder();
+        });
     }
 }
 
-bindRecipientPicker();
-
-window.addOptionRow = addOptionRow;
-window.resetForm = resetForm;
-window.saveQuestion = saveQuestion;
-window.loadQuestions = loadQuestions;
-window.loadQuestionRecipients = loadQuestionRecipients;
+bindSurveyPage();
+window.loadSurveys = loadSurveys;
