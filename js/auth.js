@@ -1,7 +1,10 @@
 // Authentication functions for admin dashboard
 
-// API_BASE_URL is set in config.js based on MODE (DEV or PROD)
-const API_BASE_URL = window.NetworkConfig?.API_BASE_URL || 'http://localhost:3000/api';
+// Read at call time so LOCAL / NGROK / Staging pick up localhost.
+function adminApiBaseUrl() {
+    return window.NetworkConfig?.API_BASE_URL || 'http://localhost:3000/api';
+}
+const API_BASE_URL = adminApiBaseUrl();
 
 // Log the API URL being used (for debugging)
 console.log('🔗 Admin Dashboard API URL:', API_BASE_URL);
@@ -96,6 +99,7 @@ function isAllowedAdminEmail(email) {
 // Login function
 async function login(email, password) {
     // [LOG] Before request - context for PROD debugging
+    const API_BASE_URL = adminApiBaseUrl();
     const loginUrl = `${API_BASE_URL}/admin/auth/login`;
     console.log('🔐 [LOG] Login REQUEST start:', {
         mode: window.NetworkConfig?.MODE,
@@ -144,7 +148,11 @@ async function login(email, password) {
             console.error('❌ [LOG] Response not OK, body:', errorText);
             try {
                 const errorData = JSON.parse(errorText);
-                return { success: false, error: errorData.message || errorData.error || 'Login failed' };
+                const errBody = errorData.error;
+                const errText = typeof errBody === 'string'
+                    ? errBody
+                    : (errBody && errBody.message) || errorData.message || 'Login failed';
+                return { success: false, error: errText };
             } catch {
                 return { success: false, error: `Server error: ${response.status} ${response.statusText}` };
             }

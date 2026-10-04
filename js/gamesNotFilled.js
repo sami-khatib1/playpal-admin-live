@@ -132,7 +132,11 @@ async function loadUnfilledGames(page) {
         );
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.success === false) {
-            throw new Error(data.error || data.message || `Request failed (${response.status})`);
+            const errBody = data && data.error;
+            const errText = typeof errBody === "string"
+                ? errBody
+                : (errBody && errBody.message) || data.message || `Request failed (${response.status})`;
+            throw new Error(errText);
         }
 
         if (!UNFILLED_STATE.sportsLoaded || (data.sports || []).length) {
@@ -165,7 +169,11 @@ async function loadUnfilledGames(page) {
         if (prev) prev.disabled = UNFILLED_STATE.page <= 1;
         if (next) next.disabled = UNFILLED_STATE.page >= UNFILLED_STATE.totalPages;
     } catch (err) {
-        showError(err.message || "Failed to load games");
+        const raw = err && err.message ? err.message : "Failed to load games";
+        const msg = /failed to fetch|networkerror/i.test(raw)
+            ? "Cannot reach the local backend at http://localhost:3000. Start it, then refresh."
+            : raw;
+        showError(msg);
         const meta = document.getElementById("meta");
         if (meta) meta.textContent = "";
         renderRows([]);

@@ -17,18 +17,21 @@ const NetworkConfig = {
   // Production server (Google Cloud Run)
   PROD_BASE_URL: "https://playpal-api-902990494205.me-west1.run.app/api",
 
-  // Get the current API base URL based on mode
+  // LOCAL, NGROK, and the Staging DB switch call this machine.
+  // The local backend in development uses the staging database (playpal_staging).
+  // PROD + DB "Prod" still calls Cloud Run.
   get API_BASE_URL() {
-    switch (this.MODE) {
-      case "LOCAL":
-        return this.LOCAL_BASE_URL;
-      case "NGROK":
-        return this.NGROK_BASE_URL;
-      case "PROD":
-        return this.PROD_BASE_URL;
-      default:
-        return this.LOCAL_BASE_URL; // Default to local
+    const mode = this.MODE;
+    const stagingSelected =
+      typeof window !== "undefined" &&
+      window.DbTarget &&
+      typeof window.DbTarget.isStaging === "function" &&
+      window.DbTarget.isStaging();
+    if (mode === "LOCAL" || mode === "NGROK" || stagingSelected) {
+      return this.LOCAL_BASE_URL;
     }
+    if (mode === "PROD") return this.PROD_BASE_URL;
+    return this.LOCAL_BASE_URL;
   },
 
   // Log current configuration (useful for debugging)

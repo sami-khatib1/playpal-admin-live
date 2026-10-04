@@ -71,6 +71,38 @@
 
     window.DbTarget = DbTarget;
 
+    function wantsLocalBackend() {
+        const mode = window.NetworkConfig && window.NetworkConfig.MODE;
+        if (mode === "LOCAL" || mode === "NGROK") return true;
+        return DbTarget.isStaging();
+    }
+
+    function localApiOrigin() {
+        const base = (window.NetworkConfig && window.NetworkConfig.LOCAL_BASE_URL) || "http://localhost:3000/api";
+        try {
+            return new URL(base).origin;
+        } catch {
+            return "http://localhost:3000";
+        }
+    }
+
+    // Rewrite PlayPal /api calls to the local backend. Development already
+    // connects that process to playpal_staging, so no live deploy is required.
+    function rewriteApiUrlToLocal(urlString) {
+        let u;
+        try {
+            u = new URL(urlString, window.location.href);
+        } catch {
+            return urlString;
+        }
+        if (u.pathname !== "/api" && !u.pathname.startsWith("/api/")) return urlString;
+        const origin = localApiOrigin();
+        const local = new URL(origin);
+        u.protocol = local.protocol;
+        u.host = local.host;
+        return u.toString();
+    }
+
     // =====================================================================
     // Fetch monkey-patch
     // =====================================================================
@@ -105,8 +137,12 @@
 
     const originalFetch = window.fetch.bind(window);
     window.fetch = function patchedFetch(input, init) {
-        if (!DbTarget.isStaging() || !urlMatchesApi(input)) {
-            return originalFetch(input, init);
+        let nextInput = input;
+        if (wantsLocalBackend() && typeof input === "string") {
+            nextInput = rewriteApiUrlToLocal(input);
+        }
+        if (!DbTarget.isStaging() || !urlMatchesApi(nextInput)) {
+            return originalFetch(nextInput, init);
         }
 
         const nextInit = Object.assign({}, init || {});
@@ -129,7 +165,7 @@
         }
         nextInit.headers = headers;
 
-        return originalFetch(input, nextInit);
+        return originalFetch(nextInput, nextInit);
     };
 
     // =====================================================================
@@ -237,18 +273,20 @@
     }
 
     function ensureBanner() {
-        if (!DbTarget.isStaging()) {
+        if (!wantsLocalBackend()) {
             document.body?.classList.remove('db-target-staging');
             const existing = document.getElementById(INDICATOR_ID);
             if (existing) existing.remove();
             return;
         }
         document.body?.classList.add('db-target-staging');
-        if (document.getElementById(INDICATOR_ID)) return;
-        const bar = document.createElement('div');
-        bar.id = INDICATOR_ID;
-        bar.textContent = 'STAGING DB — all reads and writes are routed to the staging database';
-        document.body?.prepend(bar);
+        let bar = document.getElementById(INDICATOR_ID);
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = INDICATOR_ID;
+            document.body?.prepend(bar);
+        }
+        bar.textContent = 'LOCAL DEV · STAGING DB — this page calls http://localhost:3000, not the live API. Keep the local backend running.';
     }
 
     function syncIndicatorFromState() {
