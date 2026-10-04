@@ -13,6 +13,7 @@ function navigate(path) {
         '/help-us': 'help-us.html',
         '/activity-demands': 'activity-demands.html',
         '/analytics': 'analytics.html',
+        '/games-not-filled': 'games-not-filled.html',
         '/score': 'score.html',
         '/users': 'users.html',
         '/tokens-last-active': 'tokens-last-active.html',

@@ -125,19 +125,21 @@ async function loadSnapshot() {
             ["Repeat player-rate", fmtPct(data.repeatPlayerRate)],
             ["Repeat organizer-rate", fmtPct(data.repeatOrganizerRate)],
             ["Unique players (30d)", data.uniquePlayersLast30d ?? "—"],
-            ["Games filled % (30d)", fmtPct(data.gamesFilledRate)],
+            ["Games filled %", fmtPct(data.gamesFilledRate)],
         ]);
         const note = document.getElementById("snapshot-kpi-note");
         if (note) {
             const players = data.playersWithAtLeastOneGame ?? 0;
             const orgs = data.organizersWithAtLeastOneGame ?? 0;
             const filled = data.gamesFilledCount ?? 0;
-            const started = data.gamesStartedLast30d ?? 0;
+            const tableCount = data.gamesTableCount ?? 0;
+            const unfilled = data.gamesUnderMinimum ?? 0;
             note.textContent =
                 `Repeat player-rate: ${data.repeatPlayers ?? 0}/${players} players with 2+ past games. ` +
                 `Repeat organizer-rate: ${data.repeatOrganizers ?? 0}/${orgs} organizers with 2+ created games. ` +
                 `Unique players (30d): distinct participants in games that started in the last 30 days. ` +
-                `Games filled (30d): ${filled}/${started} started games that reached min participants.`;
+                `Games filled: ${filled}/${tableCount} games in the games table that met the minimum` +
+                ` (${unfilled} saved under minimum, not counted as played).`;
         }
     } catch (e) {
         showError(e.message || "Failed to load snapshot");
