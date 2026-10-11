@@ -35,6 +35,195 @@ function getErrorMessage(data, defaultMsg) {
     return defaultMsg;
 }
 
+var announcementUserDirectory = [];
+var selectedAnnouncementUsers = [];
+
+function announcementUserLabel(user) {
+    var name = user.name || user.username || user.email || 'Unnamed';
+    return user.username ? name + ' (@' + user.username + ')' : name;
+}
+
+function eligibleAnnouncementUsers() {
+    return announcementUserDirectory.filter(function (user) {
+        return user.id && !user.deletedAt && user.accountType !== 'guest';
+    });
+}
+
+function announcementAudienceFilters() {
+    return {
+        query: (document.getElementById('user-search')?.value || '').trim().toLowerCase(),
+        city: document.getElementById('filter-city')?.value || '',
+        sport: document.getElementById('filter-sport')?.value || '',
+        account: document.getElementById('filter-account')?.value || '',
+        gender: document.getElementById('filter-gender')?.value || '',
+    };
+}
+
+function announcementUserMatches(user, filters) {
+    if (filters.query) {
+        var haystack = [user.name, user.username, user.email].map(function (value) {
+            return String(value || '').toLowerCase();
+        }).join(' ');
+        if (haystack.indexOf(filters.query) === -1) return false;
+    }
+    if (filters.city && String(user.city || '') !== filters.city) return false;
+    if (filters.account && String(user.accountType || 'user') !== filters.account) return false;
+    if (filters.gender && String(user.gender || '') !== filters.gender) return false;
+    if (filters.sport) {
+        var needle = filters.sport.toLowerCase();
+        var sports = Array.isArray(user.favoriteSports) ? user.favoriteSports : [];
+        if (!sports.some(function (sport) { return String(sport).toLowerCase() === needle; })) return false;
+    }
+    return true;
+}
+
+function matchingAnnouncementUsers() {
+    var filters = announcementAudienceFilters();
+    return eligibleAnnouncementUsers().filter(function (user) {
+        return announcementUserMatches(user, filters);
+    });
+}
+
+function fillAnnouncementFilterOptions() {
+    var cities = [];
+    var sports = [];
+    eligibleAnnouncementUsers().forEach(function (user) {
+        var city = String(user.city || '').trim();
+        if (city && cities.indexOf(city) === -1) cities.push(city);
+        (user.favoriteSports || []).forEach(function (sport) {
+            var raw = String(sport || '').trim();
+            if (raw && sports.indexOf(raw) === -1) sports.push(raw);
+        });
+    });
+    cities.sort(function (a, b) { return a.localeCompare(b); });
+    if (window.AdminSportLabels?.mergeSportOptions) {
+        sports = window.AdminSportLabels.mergeSportOptions(sports);
+    } else {
+        sports.sort(function (a, b) { return a.localeCompare(b); });
+    }
+    var citySelect = document.getElementById('filter-city');
+    var sportSelect = document.getElementById('filter-sport');
+    citySelect.innerHTML = '<option value="">All cities</option>' + cities.map(function (city) {
+        return '<option value="' + escapeHtml(city) + '">' + escapeHtml(city) + '</option>';
+    }).join('');
+    sportSelect.innerHTML = '<option value="">All sports</option>' + sports.map(function (sport) {
+        var label = window.AdminSportLabels?.sportSlugToDisplayLabel(sport) || sport;
+        return '<option value="' + escapeHtml(sport) + '">' + escapeHtml(label) + '</option>';
+    }).join('');
+}
+
+function renderSelectedAnnouncementUsers() {
+    var chips = document.getElementById('selected-chips');
+    var empty = document.getElementById('selected-empty');
+    chips.innerHTML = '';
+    selectedAnnouncementUsers.forEach(function (user) {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = escapeHtml(announcementUserLabel(user)) + '<button type="button" aria-label="Remove">×</button>';
+        chip.querySelector('button').addEventListener('click', function () {
+            selectedAnnouncementUsers = selectedAnnouncementUsers.filter(function (item) {
+                return item.id !== user.id;
+            });
+            renderSelectedAnnouncementUsers();
+            renderAnnouncementUserList();
+        });
+        chips.appendChild(chip);
+    });
+    empty.style.display = selectedAnnouncementUsers.length ? 'none' : 'block';
+}
+
+function renderAnnouncementUserList() {
+    var list = document.getElementById('user-list');
+    var count = document.getElementById('match-count');
+    var matches = matchingAnnouncementUsers();
+    var visibleMatches = matches.slice(0, 80);
+    var selectedIds = {};
+    selectedAnnouncementUsers.forEach(function (user) { selectedIds[user.id] = true; });
+    count.textContent = matches.length + ' matching · ' + selectedAnnouncementUsers.length + ' selected';
+    list.innerHTML = '';
+    if (!visibleMatches.length) {
+        list.innerHTML = '<div class="user-row help-text">No matching users</div>';
+        return;
+    }
+    visibleMatches.forEach(function (user) {
+        var row = document.createElement('label');
+        row.className = 'user-row';
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = !!selectedIds[user.id];
+        checkbox.addEventListener('change', function () {
+            if (checkbox.checked && !selectedIds[user.id]) {
+                selectedAnnouncementUsers.push(user);
+            } else if (!checkbox.checked) {
+                selectedAnnouncementUsers = selectedAnnouncementUsers.filter(function (item) {
+                    return item.id !== user.id;
+                });
+            }
+            renderSelectedAnnouncementUsers();
+            renderAnnouncementUserList();
+        });
+        var text = document.createElement('span');
+        text.textContent = announcementUserLabel(user) + (user.city ? ' · ' + user.city : '');
+        row.appendChild(checkbox);
+        row.appendChild(text);
+        list.appendChild(row);
+    });
+}
+
+async function ensureAnnouncementUserDirectory() {
+    if (announcementUserDirectory.length) return;
+    var loading = document.getElementById('audience-loading');
+    loading.style.display = 'block';
+    try {
+        var data = await request('GET', '/admin/users');
+        announcementUserDirectory = data.users || [];
+        fillAnnouncementFilterOptions();
+    } finally {
+        loading.style.display = 'none';
+    }
+}
+
+async function setAnnouncementAudienceMode(mode) {
+    var selectedMode = mode === 'selected' ? 'selected' : 'all';
+    var radio = document.querySelector('input[name="announcementAudience"][value="' + selectedMode + '"]');
+    if (radio) radio.checked = true;
+    document.getElementById('audience-picker').style.display = selectedMode === 'selected' ? 'block' : 'none';
+    if (selectedMode === 'selected') {
+        await ensureAnnouncementUserDirectory();
+        renderSelectedAnnouncementUsers();
+        renderAnnouncementUserList();
+    }
+}
+
+function setupAnnouncementAudience() {
+    document.querySelectorAll('input[name="announcementAudience"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            setAnnouncementAudienceMode(radio.value).catch(function (error) {
+                var errorEl = document.getElementById('form-error');
+                errorEl.textContent = error.message || 'Failed to load users';
+                errorEl.style.display = 'block';
+            });
+        });
+    });
+    ['user-search', 'filter-city', 'filter-sport', 'filter-account', 'filter-gender'].forEach(function (id) {
+        var element = document.getElementById(id);
+        element.addEventListener(id === 'user-search' ? 'input' : 'change', renderAnnouncementUserList);
+    });
+    document.getElementById('select-matching').addEventListener('click', function () {
+        var selectedById = {};
+        selectedAnnouncementUsers.forEach(function (user) { selectedById[user.id] = user; });
+        matchingAnnouncementUsers().forEach(function (user) { selectedById[user.id] = user; });
+        selectedAnnouncementUsers = Object.keys(selectedById).map(function (id) { return selectedById[id]; });
+        renderSelectedAnnouncementUsers();
+        renderAnnouncementUserList();
+    });
+    document.getElementById('clear-selected').addEventListener('click', function () {
+        selectedAnnouncementUsers = [];
+        renderSelectedAnnouncementUsers();
+        renderAnnouncementUserList();
+    });
+}
+
 // Upload announcement image (FormData); returns { objectPath, url }
 async function uploadAnnouncementImage(file) {
     var url = getApiBaseUrl() + '/admin/announcements/upload-image';
@@ -85,6 +274,9 @@ async function loadAnnouncements() {
             tr.innerHTML =
                 '<td>' + escapeHtml(a.title || '') + '</td>' +
                 '<td>' + (a.displayOrder != null ? a.displayOrder : 0) + '</td>' +
+                '<td><span class="badge audience-badge">' + (a.targetAllUsers === false ? ((a.recipientCount || 0) + ' users') : 'All users') + '</span></td>' +
+                '<td>' + (a.buttonClickCount || 0) + '</td>' +
+                '<td>' + (a.uniqueClickerCount || 0) + '</td>' +
                 '<td><span class="badge ' + (a.isActive ? 'badge-active' : 'badge-inactive') + '">' + (a.isActive ? 'Active' : 'Inactive') + '</span></td>' +
                 '<td>' + (a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : '') + '</td>' +
                 '<td class="actions-cell">' +
@@ -130,6 +322,13 @@ function resetForm() {
     if (iconPreviewImg) iconPreviewImg.src = '';
     var iconFileInput = document.getElementById('announcement-icon-file');
     if (iconFileInput) iconFileInput.value = '';
+    selectedAnnouncementUsers = [];
+    ['user-search', 'filter-city', 'filter-sport', 'filter-account', 'filter-gender'].forEach(function (id) {
+        var element = document.getElementById(id);
+        if (element) element.value = '';
+    });
+    setAnnouncementAudienceMode('all');
+    renderSelectedAnnouncementUsers();
 }
 
 function setAnnouncementIconPreview(objectPath, iconUrlForPreview) {
@@ -203,6 +402,19 @@ async function editAnnouncement(id) {
         if (radio) radio.checked = true;
         document.getElementById('displayOrder').value = a.displayOrder != null ? a.displayOrder : 0;
         document.getElementById('isActive').checked = a.isActive !== false;
+        if (a.targetAllUsers === false) {
+            await ensureAnnouncementUserDirectory();
+            var recipientIds = Array.isArray(a.recipientUserIds) ? a.recipientUserIds : [];
+            var usersById = {};
+            eligibleAnnouncementUsers().forEach(function (user) { usersById[user.id] = user; });
+            selectedAnnouncementUsers = recipientIds.map(function (userId) {
+                return usersById[userId] || { id: userId, name: 'User ' + userId };
+            });
+            await setAnnouncementAudienceMode('selected');
+        } else {
+            selectedAnnouncementUsers = [];
+            await setAnnouncementAudienceMode('all');
+        }
         document.getElementById('form-success').style.display = 'none';
         document.getElementById('form-error').style.display = 'none';
         var previewWrap = document.getElementById('announcement-image-preview');
@@ -236,6 +448,14 @@ async function saveAnnouncement(e) {
     e.preventDefault();
     var id = document.getElementById('announcement-id').value;
     var linkActionRadio = document.querySelector('input[name="linkAction"]:checked');
+    var audienceRadio = document.querySelector('input[name="announcementAudience"]:checked');
+    var targetAllUsers = !audienceRadio || audienceRadio.value === 'all';
+    if (!targetAllUsers && !selectedAnnouncementUsers.length) {
+        var audienceError = document.getElementById('form-error');
+        audienceError.textContent = 'Choose at least one user or select All users.';
+        audienceError.style.display = 'block';
+        return false;
+    }
     var payload = {
         title: document.getElementById('title').value.trim(),
         imageUrl: document.getElementById('imageUrl').value.trim() || null,
@@ -246,6 +466,8 @@ async function saveAnnouncement(e) {
         linkAction: (linkActionRadio && linkActionRadio.value === 'share') ? 'share' : 'open',
         displayOrder: parseInt(document.getElementById('displayOrder').value, 10) || 0,
         isActive: document.getElementById('isActive').checked,
+        targetAllUsers: targetAllUsers,
+        recipientUserIds: targetAllUsers ? [] : selectedAnnouncementUsers.map(function (user) { return user.id; }),
     };
     var successEl = document.getElementById('form-success');
     var errorEl = document.getElementById('form-error');

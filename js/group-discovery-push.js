@@ -19,6 +19,9 @@ const state = {
     matchingTotal: 0,
     selectedSports: new Set(),
     selectedGroup: null,
+    groupPage: 1,
+    groupTotal: 0,
+    groupHasMore: false,
 };
 
 function escapeHtml(str) {
@@ -51,6 +54,60 @@ function showSuccess(msg) {
 
 function sportLabel(slug) {
     return window.AdminSportLabels?.sportSlugToDisplayLabel(slug) || slug || "—";
+}
+
+function formatShortDate(value) {
+    if (!value) return "never";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "never";
+    return date.toLocaleDateString();
+}
+
+function inputValue(id) {
+    return (document.getElementById(id)?.value || "").trim();
+}
+
+function buildGroupSearchQuery(page = 1) {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "50");
+
+    const mappings = [
+        ["group-search", "q"],
+        ["group-gender-filter", "gender"],
+        ["group-city-filter", "city"],
+        ["group-created-from", "createdFrom"],
+        ["group-created-to", "createdTo"],
+        ["group-members-min", "membersMin"],
+        ["group-members-max", "membersMax"],
+        ["group-total-min", "totalActivitiesMin"],
+        ["group-total-max", "totalActivitiesMax"],
+        ["group-completed-min", "completedActivitiesMin"],
+        ["group-completed-max", "completedActivitiesMax"],
+        ["group-not-completed-min", "notCompletedActivitiesMin"],
+        ["group-not-completed-max", "notCompletedActivitiesMax"],
+        ["group-last-activity-days", "lastActivityDays"],
+        ["group-upcoming-filter", "upcoming"],
+        ["group-looking-filter", "lookingForPlayers"],
+        ["group-last-push-filter", "lastPush"],
+        ["group-sort", "sort"],
+    ];
+    mappings.forEach(([elementId, queryKey]) => {
+        const value = inputValue(elementId);
+        if (value) params.set(queryKey, value);
+    });
+    return params.toString();
+}
+
+function groupMetricsText(group) {
+    const location = group.city || (group.hasLocation ? "has location" : "no location");
+    const lastActivity = group.lastActivityCreatedAt
+        ? formatShortDate(group.lastActivityCreatedAt)
+        : "never";
+    const lastPush = group.lastGroupDiscoveryPushAt
+        ? formatShortDate(group.lastGroupDiscoveryPushAt)
+        : "never";
+    return `${sportLabel(group.sport)} · ${location} · ${Number(group.membersCount) || 0} members · ${Number(group.totalActivities) || 0} activities (${Number(group.completedActivities) || 0} completed, ${Number(group.notCompletedActivities) || 0} not completed) · ${Number(group.upcomingActivities) || 0} upcoming · last activity ${lastActivity} · last push ${lastPush}${group.lookingForPlayers ? " · looking for players" : ""}`;
 }
 
 function getSegmentFilter() {
@@ -142,14 +199,10 @@ function renderSelectedGroup() {
         updateRadiusHint();
         return;
     }
-    const sport = sportLabel(group.sport);
     const gender = group.genderRestriction || "mixed";
-    const loc = group.hasLocation
-        ? group.city || "has location"
-        : "no location";
     el.style.display = "block";
     el.innerHTML = `<div class="title">${escapeHtml(group.name || "Untitled group")}</div>
-        <div class="meta">${escapeHtml(sport)} · ${escapeHtml(gender)} · ${escapeHtml(loc)} · ${Number(group.membersCount) || 0} members</div>`;
+        <div class="meta">${escapeHtml(groupMetricsText(group))} · ${escapeHtml(gender)}</div>`;
     updateRadiusHint();
 }
 
@@ -164,19 +217,16 @@ function selectGroup(group, { reload = true } = {}) {
     }
 }
 
-async function searchGroups() {
+async function searchGroups(page = 1) {
     const list = document.getElementById("group-search-results");
+    const meta = document.getElementById("group-search-meta");
     const token = getToken();
     if (!list || !token) return;
-    const q = (document.getElementById("group-search")?.value || "").trim();
-    const gender = (document.getElementById("group-gender-filter")?.value || "").trim();
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (gender) params.set("gender", gender);
-    params.set("limit", "10000");
+    state.groupPage = Math.max(1, Number(page) || 1);
+    list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">Loading groups…</li>`;
     try {
         const response = await fetch(
-            `${getApiBaseUrl()}/admin/growth/group-push/communities?${params.toString()}`,
+            `${getApiBaseUrl()}/admin/growth/group-push/communities?${buildGroupSearchQuery(state.groupPage)}`,
             { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } },
         );
         const data = await response.json().catch(() => ({}));
@@ -184,22 +234,27 @@ async function searchGroups() {
             throw new Error(data?.error || data?.message || `Request failed (${response.status})`);
         }
         const results = data.results || [];
+        state.groupTotal = Number(data.total) || 0;
+        state.groupHasMore = Boolean(data.hasMore);
+        if (meta) {
+            const from = state.groupTotal === 0 ? 0 : (state.groupPage - 1) * 50 + 1;
+            const to = Math.min(state.groupTotal, from + results.length - 1);
+            meta.textContent = `${state.groupTotal} matching groups · showing ${from}–${to}`;
+        }
+        updateGroupPagination();
         if (results.length === 0) {
             list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">No groups match.</li>`;
             return;
         }
         const selectedId = state.selectedGroup?.id || getCommunityId();
-        const countRow = `<li class="muted" style="padding:0.25rem 0 0.5rem;">${results.length} group${results.length === 1 ? "" : "s"}</li>`;
-        list.innerHTML = countRow + results
+        list.innerHTML = results
             .map((g) => {
                 const id = escapeHtml(g.id || "");
-                const sport = sportLabel(g.sport);
                 const genderLabel = g.genderRestriction || "mixed";
-                const loc = g.hasLocation ? g.city || "has location" : "no location";
                 const selected = g.id === selectedId ? "selected" : "";
                 return `<li class="result-item ${selected}" data-group-id="${id}">
                     <div class="title">${escapeHtml(g.name || "Untitled")}</div>
-                    <div class="meta">${escapeHtml(sport)} · ${escapeHtml(genderLabel)} · ${escapeHtml(loc)} · ${Number(g.membersCount) || 0} members</div>
+                    <div class="meta">${escapeHtml(groupMetricsText(g))} · ${escapeHtml(genderLabel)}</div>
                 </li>`;
             })
             .join("");
@@ -214,6 +269,52 @@ async function searchGroups() {
         console.error(e);
         list.innerHTML = `<li class="muted" style="padding:0.5rem 0;">${escapeHtml(e.message || "Failed to search groups")}</li>`;
     }
+}
+
+function updateGroupPagination() {
+    const previous = document.getElementById("btn-group-prev");
+    const next = document.getElementById("btn-group-next");
+    const label = document.getElementById("group-page-label");
+    if (previous) previous.disabled = state.groupPage <= 1;
+    if (next) next.disabled = !state.groupHasMore;
+    const totalPages = Math.max(1, Math.ceil(state.groupTotal / 50));
+    if (label) label.textContent = `Page ${state.groupPage} of ${totalPages}`;
+}
+
+function previousGroupPage() {
+    if (state.groupPage > 1) searchGroups(state.groupPage - 1);
+}
+
+function nextGroupPage() {
+    if (state.groupHasMore) searchGroups(state.groupPage + 1);
+}
+
+function clearGroupFilters() {
+    [
+        "group-search",
+        "group-gender-filter",
+        "group-city-filter",
+        "group-created-from",
+        "group-created-to",
+        "group-members-min",
+        "group-members-max",
+        "group-total-min",
+        "group-total-max",
+        "group-completed-min",
+        "group-completed-max",
+        "group-not-completed-min",
+        "group-not-completed-max",
+        "group-last-activity-days",
+        "group-upcoming-filter",
+        "group-looking-filter",
+        "group-last-push-filter",
+    ].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.value = "";
+    });
+    const sort = document.getElementById("group-sort");
+    if (sort) sort.value = "newest";
+    searchGroups(1);
 }
 
 async function resolveGroupFromId(id) {
@@ -547,6 +648,10 @@ async function sendGroupDiscoveryPush() {
         const groupName = data.community?.name ? ` → "${data.community.name}"` : "";
         const msg = `Sent: ${s.deliveredToUser ?? 0} · No device: ${s.noDeviceTokens ?? 0} · Failed: ${s.failed ?? 0}${groupName}`;
         showSuccess(msg);
+        if (s.promotionTracked && state.selectedGroup) {
+            state.selectedGroup.lastGroupDiscoveryPushAt = new Date().toISOString();
+            renderSelectedGroup();
+        }
         if (resultEl) {
             const rows = (data.results || [])
                 .filter((r) => !r.ok)
@@ -595,10 +700,10 @@ function initGroupDiscoveryPush() {
     if (groupSearch) {
         groupSearch.addEventListener("input", () => {
             clearTimeout(groupSearchTimer);
-            groupSearchTimer = setTimeout(searchGroups, 300);
+            groupSearchTimer = setTimeout(() => searchGroups(1), 300);
         });
     }
-    if (groupGender) groupGender.addEventListener("change", searchGroups);
+    if (groupGender) groupGender.addEventListener("change", () => searchGroups(1));
     if (communityId) {
         let idTimer;
         communityId.addEventListener("change", () => {
@@ -631,3 +736,6 @@ window.sendGroupDiscoveryPush = sendGroupDiscoveryPush;
 window.prevPage = prevPage;
 window.nextPage = nextPage;
 window.searchGroups = searchGroups;
+window.clearGroupFilters = clearGroupFilters;
+window.previousGroupPage = previousGroupPage;
+window.nextGroupPage = nextGroupPage;

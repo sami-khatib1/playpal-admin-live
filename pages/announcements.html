@@ -21,7 +21,7 @@
         .form-card h3 { margin: 0 0 1rem 0; color: var(--color-text); }
         .form-group { margin-bottom: 1rem; }
         .form-group label { display: block; font-weight: 500; margin-bottom: 0.35rem; color: var(--color-text); }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 0.5rem 0.75rem;
             border: 1px solid var(--color-border);
@@ -60,6 +60,17 @@
         .link-action-toggle .toggle-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; }
         .announcement-icon-upload { display: flex; flex-wrap: wrap; align-items: center; }
         .announcement-icon-preview { display: block; }
+        .audience-options { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .audience-option { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.9rem; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; }
+        .audience-option input { width: auto; }
+        .user-list { max-height: 280px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: 8px; }
+        .user-row { display: flex; gap: 0.5rem; align-items: center; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--color-border); }
+        .user-row:last-child { border-bottom: none; }
+        .user-row input { width: auto; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+        .chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-background); font-size: 0.85rem; }
+        .chip button { border: none; background: transparent; cursor: pointer; color: var(--color-text-secondary); }
+        .audience-badge { background: #dbeafe; color: #1e40af; }
     </style>
 </head>
 <body>
@@ -120,6 +131,56 @@
                     <label for="content">Content *</label>
                     <textarea id="content" required placeholder="Body text of the announcement"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Audience</label>
+                    <div class="audience-options">
+                        <label class="audience-option"><input type="radio" name="announcementAudience" value="all" checked /> All users</label>
+                        <label class="audience-option"><input type="radio" name="announcementAudience" value="selected" /> Choose users</label>
+                    </div>
+                    <div id="audience-picker" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="user-search">Search</label>
+                                <input type="text" id="user-search" placeholder="Name, username or email" />
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-city">City</label>
+                                <select id="filter-city"><option value="">All cities</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-sport">Favorite sport</label>
+                                <select id="filter-sport"><option value="">All sports</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-account">Account</label>
+                                <select id="filter-account">
+                                    <option value="">All accounts</option>
+                                    <option value="user">User</option>
+                                    <option value="business">Business</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="filter-gender">Gender</label>
+                                <select id="filter-gender">
+                                    <option value="">All genders</option>
+                                    <option value="female">Female</option>
+                                    <option value="male">Male</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 0.5rem;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="select-matching">Add everyone matching</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="clear-selected">Clear selected</button>
+                            <span id="match-count" class="help-text"></span>
+                        </div>
+                        <div id="audience-loading" class="help-text" style="display: none;">Loading users...</div>
+                        <div id="user-list" class="user-list"></div>
+                        <div id="selected-chips" class="chips"></div>
+                        <p id="selected-empty" class="help-text">No one selected.</p>
+                    </div>
+                    <p class="help-text">Filters help you select the current matching users; the saved audience stays fixed.</p>
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="link">Link URL</label>
@@ -165,6 +226,9 @@
                     <tr>
                         <th>Title</th>
                         <th>Order</th>
+                        <th>Audience</th>
+                        <th>Button clicks</th>
+                        <th>People clicked</th>
                         <th>Status</th>
                         <th>Updated</th>
                         <th>Actions</th>
@@ -179,6 +243,7 @@
     <script src="../js/auth.js"></script>
     <script src="../js/app.js"></script>
     <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
     <script src="../js/announcements.js"></script>
     <script>
         if (!isAuthenticated()) {
@@ -188,6 +253,7 @@
             if (admin) document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
             setupAnnouncementImageUpload();
             setupAnnouncementIconUpload();
+            setupAnnouncementAudience();
             loadAnnouncements();
         }
     </script>

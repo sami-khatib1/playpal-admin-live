@@ -24,6 +24,8 @@
             margin-bottom: 0.75rem;
         }
         .filter-grid label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.25rem; }
+        .range-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; }
+        .range-pair input { min-width: 0; }
         .result-list { list-style: none; margin: 0 0 0.75rem; padding: 0; max-height: 55vh; overflow: auto; }
         .result-item {
             border: 1px solid var(--color-border);
@@ -136,8 +138,101 @@
                             <option value="male">Male</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="group-city-filter">City</label>
+                        <input id="group-city-filter" class="form-input" type="search" placeholder="Any city" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="filter-grid">
+                    <div>
+                        <label>Group created</label>
+                        <div class="range-pair">
+                            <input id="group-created-from" class="form-input" type="date" aria-label="Created from" />
+                            <input id="group-created-to" class="form-input" type="date" aria-label="Created to" />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Members (min / max)</label>
+                        <div class="range-pair">
+                            <input id="group-members-min" class="form-input" type="number" min="0" placeholder="Min" />
+                            <input id="group-members-max" class="form-input" type="number" min="0" placeholder="Max" />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Total activities (min / max)</label>
+                        <div class="range-pair">
+                            <input id="group-total-min" class="form-input" type="number" min="0" placeholder="Min" />
+                            <input id="group-total-max" class="form-input" type="number" min="0" placeholder="Max" />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Completed activities (min / max)</label>
+                        <div class="range-pair">
+                            <input id="group-completed-min" class="form-input" type="number" min="0" placeholder="Min" />
+                            <input id="group-completed-max" class="form-input" type="number" min="0" placeholder="Max" />
+                        </div>
+                    </div>
+                    <div>
+                        <label>Not completed (min / max)</label>
+                        <div class="range-pair">
+                            <input id="group-not-completed-min" class="form-input" type="number" min="0" placeholder="Min" />
+                            <input id="group-not-completed-max" class="form-input" type="number" min="0" placeholder="Max" />
+                        </div>
+                    </div>
+                    <div>
+                        <label for="group-last-activity-days">Last activity created</label>
+                        <select id="group-last-activity-days" class="form-input">
+                            <option value="">Any time</option>
+                            <option value="14">2+ weeks ago or never</option>
+                            <option value="30">30+ days ago or never</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="group-upcoming-filter">Upcoming activities</label>
+                        <select id="group-upcoming-filter" class="form-input">
+                            <option value="">Any</option>
+                            <option value="has">At least one</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="group-looking-filter">Looking for players</label>
+                        <select id="group-looking-filter" class="form-input">
+                            <option value="">Any</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="group-last-push-filter">Last discovery push</label>
+                        <select id="group-last-push-filter" class="form-input">
+                            <option value="">Any</option>
+                            <option value="never">Never</option>
+                            <option value="stale7">7+ days ago or never</option>
+                            <option value="stale30">30+ days ago or never</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="group-sort">Sort groups</label>
+                        <select id="group-sort" class="form-input">
+                            <option value="newest">Newest group</option>
+                            <option value="oldest_activity">Oldest last activity</option>
+                            <option value="fewest_members">Fewest members</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="hint">Total activities includes upcoming activities. Completed means the activity met its minimum participants; not completed means it did not.</p>
+                <div class="toolbar">
+                    <button class="btn btn-secondary" type="button" onclick="searchGroups(1)">Apply group filters</button>
+                    <button class="btn btn-secondary" type="button" onclick="clearGroupFilters()">Clear</button>
+                    <span id="group-search-meta" class="muted"></span>
                 </div>
                 <ul id="group-search-results" class="result-list muted">Loading groups…</ul>
+                <div class="pagination" style="margin-bottom: 0.85rem;">
+                    <button id="btn-group-prev" class="btn btn-secondary" type="button" onclick="previousGroupPage()" disabled>Previous groups</button>
+                    <span id="group-page-label" class="muted">Page 1</span>
+                    <button id="btn-group-next" class="btn btn-secondary" type="button" onclick="nextGroupPage()" disabled>Next groups</button>
+                </div>
                 <div id="selected-group" class="selected-entity" style="display: none;"></div>
 
                 <label for="community-id">Community ID (UUID)</label>
