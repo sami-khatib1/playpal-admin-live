@@ -21,16 +21,13 @@ const TYPE_LABELS = {
 };
 
 const FILTER_LABELS = {
+    city: "City",
+    date: "Date",
+    time: "Time",
     genderFilter: "Gender",
     maxDistance: "Distance",
-    lat: "Lat",
-    lng: "Lng",
     dateStart: "From",
     dateEnd: "Until",
-    refLatitude: "Lat",
-    refLongitude: "Lng",
-    refCity: "City",
-    refAddress: "Address",
     searchBy: "Search by",
     status: "Status",
     availableSlots: "Open spots",
@@ -106,8 +103,11 @@ function buildQuery() {
 
 function formatFilters(filters) {
     if (!filters || typeof filters !== "object") return "—";
+    // City / date / time have their own columns.
+    const skip = new Set(["city", "date", "time", "lat", "lng", "refLatitude", "refLongitude"]);
     const lines = [];
     Object.keys(filters).forEach((key) => {
+        if (skip.has(key)) return;
         const value = filters[key];
         if (value == null || value === "") return;
         const label = FILTER_LABELS[key] || key;
@@ -118,6 +118,22 @@ function formatFilters(filters) {
         lines.push(`${label}: ${shown}`);
     });
     return lines.length ? lines.join("\n") : "—";
+}
+
+function formatSearchDateTime(item) {
+    const filters = item?.filters && typeof item.filters === "object" ? item.filters : {};
+    if (filters.date || filters.time) {
+        return {
+            date: filters.date || "—",
+            time: filters.time || "—",
+        };
+    }
+    if (!item?.searchedAt) return { date: "—", time: "—" };
+    const when = new Date(item.searchedAt);
+    return {
+        date: when.toLocaleDateString(),
+        time: when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
 }
 
 function renderSummary(summary) {
@@ -198,26 +214,32 @@ function renderRows(items) {
     tbody.innerHTML = "";
     if (!items || items.length === 0) {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="6" class="muted">No searches match these filters.</td>`;
+        tr.innerHTML = `<td colspan="8" class="muted">No searches match these filters.</td>`;
         tbody.appendChild(tr);
         return;
     }
 
     items.forEach((item) => {
-        const when = item.searchedAt ? new Date(item.searchedAt).toLocaleString() : "";
+        const { date, time } = formatSearchDateTime(item);
         const type = TYPE_LABELS[item.type] || item.type || "—";
         const query = String(item.query || "").trim();
         const queryHtml = query
             ? escapeHtml(query)
             : `<span class="query-empty">Filters only</span>`;
+        const city =
+            item?.filters && typeof item.filters === "object" && item.filters.city
+                ? String(item.filters.city)
+                : "—";
         const name = item.userName || (item.userId ? "Unknown user" : "Anonymous");
         const userTitle = [item.username, item.userId].filter(Boolean).join(" · ");
         const tr = document.createElement("tr");
         tr.innerHTML =
-            `<td>${escapeHtml(when)}</td>` +
+            `<td>${escapeHtml(date)}</td>` +
+            `<td>${escapeHtml(time)}</td>` +
             `<td><span class="pill">${escapeHtml(type)}</span></td>` +
             `<td>${queryHtml}</td>` +
             `<td>${escapeHtml(sportLabel(item.sport))}</td>` +
+            `<td>${escapeHtml(city)}</td>` +
             `<td title="${escapeHtml(userTitle)}">${escapeHtml(name)}</td>` +
             `<td class="filters-cell">${escapeHtml(formatFilters(item.filters))}</td>`;
         tbody.appendChild(tr);
