@@ -258,6 +258,102 @@ async function uploadAnnouncementIcon(file) {
     return data;
 }
 
+var announcementEngagement = null;
+
+function engagementUserLabel(user) {
+    return announcementUserLabel(user);
+}
+
+function engagementQuery() {
+    return (document.getElementById('engagement-search')?.value || '').trim().toLowerCase();
+}
+
+function engagementUserMatches(user, query) {
+    if (!query) return true;
+    var haystack = [user.name, user.username, user.email].map(function (value) {
+        return String(value || '').toLowerCase();
+    }).join(' ');
+    return haystack.indexOf(query) !== -1;
+}
+
+function renderEngagementList(listId, users, emptyText) {
+    var list = document.getElementById(listId);
+    var query = engagementQuery();
+    var matches = (users || []).filter(function (user) {
+        return engagementUserMatches(user, query);
+    });
+    list.innerHTML = '';
+    if (!matches.length) {
+        list.innerHTML = '<div class="engagement-row help-text">' + escapeHtml(emptyText) + '</div>';
+        return;
+    }
+    matches.forEach(function (user) {
+        var row = document.createElement('div');
+        row.className = 'engagement-row';
+        var meta = [];
+        if (user.username) meta.push('@' + user.username);
+        if (user.email) meta.push(user.email);
+        row.innerHTML =
+            '<div>' + escapeHtml(engagementUserLabel(user)) + '</div>' +
+            (meta.length ? '<div class="engagement-meta">' + escapeHtml(meta.join(' · ')) + '</div>' : '');
+        list.appendChild(row);
+    });
+}
+
+function renderAnnouncementEngagement() {
+    if (!announcementEngagement) return;
+    var query = engagementQuery();
+    var seen = announcementEngagement.seen || [];
+    var clicked = announcementEngagement.clicked || [];
+    var seenVisible = seen.filter(function (user) { return engagementUserMatches(user, query); });
+    var clickedVisible = clicked.filter(function (user) { return engagementUserMatches(user, query); });
+    document.getElementById('seen-heading').textContent = 'People who saw (' + seenVisible.length + (query ? ' of ' + seen.length : '') + ')';
+    document.getElementById('clicked-heading').textContent = 'People who clicked (' + clickedVisible.length + (query ? ' of ' + clicked.length : '') + ')';
+    renderEngagementList('seen-list', seen, query ? 'No matching people' : 'Nobody has seen this card yet.');
+    renderEngagementList('clicked-list', clicked, query ? 'No matching people' : 'Nobody has clicked the button yet.');
+}
+
+async function viewAnnouncementEngagement(id) {
+    var card = document.getElementById('engagement-card');
+    var errorEl = document.getElementById('engagement-error');
+    var searchEl = document.getElementById('engagement-search');
+    errorEl.style.display = 'none';
+    searchEl.value = '';
+    card.style.display = 'block';
+    document.getElementById('engagement-title').textContent = 'Loading...';
+    document.getElementById('engagement-meta').textContent = '';
+    document.getElementById('seen-list').innerHTML = '<div class="engagement-row help-text">Loading...</div>';
+    document.getElementById('clicked-list').innerHTML = '<div class="engagement-row help-text">Loading...</div>';
+    try {
+        announcementEngagement = await request('GET', '/admin/announcements/' + encodeURIComponent(id) + '/engagement');
+        document.getElementById('engagement-title').textContent = announcementEngagement.title || 'Announcement';
+        document.getElementById('engagement-meta').textContent =
+            (announcementEngagement.seen || []).length + ' saw · ' +
+            (announcementEngagement.clicked || []).length + ' clicked · ' +
+            (announcementEngagement.buttonClickCount || 0) + ' total button clicks';
+        renderAnnouncementEngagement();
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+        announcementEngagement = null;
+        errorEl.textContent = error.message || 'Failed to load who saw and clicked';
+        errorEl.style.display = 'block';
+        document.getElementById('engagement-title').textContent = 'Who saw and clicked';
+        document.getElementById('seen-list').innerHTML = '';
+        document.getElementById('clicked-list').innerHTML = '';
+    }
+}
+
+function closeAnnouncementEngagement() {
+    announcementEngagement = null;
+    document.getElementById('engagement-card').style.display = 'none';
+    document.getElementById('engagement-search').value = '';
+}
+
+function setupAnnouncementEngagement() {
+    var searchEl = document.getElementById('engagement-search');
+    if (searchEl) searchEl.addEventListener('input', renderAnnouncementEngagement);
+}
+
 async function loadAnnouncements() {
     var loading = document.getElementById('loading-message');
     var listWrap = document.getElementById('list-wrap');
@@ -277,9 +373,11 @@ async function loadAnnouncements() {
                 '<td><span class="badge audience-badge">' + (a.targetAllUsers === false ? ((a.recipientCount || 0) + ' users') : 'All users') + '</span></td>' +
                 '<td>' + (a.buttonClickCount || 0) + '</td>' +
                 '<td>' + (a.uniqueClickerCount || 0) + '</td>' +
+                '<td>' + (a.uniqueViewerCount || 0) + '</td>' +
                 '<td><span class="badge ' + (a.isActive ? 'badge-active' : 'badge-inactive') + '">' + (a.isActive ? 'Active' : 'Inactive') + '</span></td>' +
                 '<td>' + (a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : '') + '</td>' +
                 '<td class="actions-cell">' +
+                '<button class="btn btn-secondary btn-sm" onclick="viewAnnouncementEngagement(\'' + a.id + '\')">People</button> ' +
                 '<button class="btn btn-secondary btn-sm" onclick="editAnnouncement(\'' + a.id + '\')">Edit</button> ' +
                 '<button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(\'' + a.id + '\')">Delete</button>' +
                 '</td>';
