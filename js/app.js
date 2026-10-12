@@ -12,6 +12,7 @@ function navigate(path) {
         '/questions': 'questions.html',
         '/help-us': 'help-us.html',
         '/activity-demands': 'activity-demands.html',
+        '/searches': 'searches.html',
         '/analytics': 'analytics.html',
         '/games-not-filled': 'games-not-filled.html',
         '/score': 'score.html',
