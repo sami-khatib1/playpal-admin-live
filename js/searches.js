@@ -18,6 +18,7 @@ const TYPE_LABELS = {
     activity: "Activities",
     group: "Groups",
     user: "People",
+    explore: "Explore chips",
 };
 
 const FILTER_LABELS = {
@@ -145,6 +146,7 @@ function renderSummary(summary) {
         { type: "activity", label: "Activities", count: byType.activity || 0 },
         { type: "group", label: "Groups", count: byType.group || 0 },
         { type: "user", label: "People", count: byType.user || 0 },
+        { type: "explore", label: "Explore chips", count: byType.explore || 0 },
     ];
     host.innerHTML = cards
         .map((card) => {
