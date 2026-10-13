@@ -196,12 +196,17 @@ function renderChips(id, items, onPick, emptyText) {
 
 async function fetchSearches() {
     const token = getToken();
-    const url = `${getApiBaseUrl()}/admin/searches?${buildQuery()}`;
+    // Bust browser/CDN cache — soft Refresh was reusing a stale GET body.
+    const params = new URLSearchParams(buildQuery());
+    params.set("_", String(Date.now()));
+    const url = `${getApiBaseUrl()}/admin/searches?${params.toString()}`;
     const response = await fetch(url, {
         method: "GET",
+        cache: "no-store",
         headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
         },
     });
     const data = await response.json().catch(() => ({}));
