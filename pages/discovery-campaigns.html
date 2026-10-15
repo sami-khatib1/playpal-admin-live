@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Weekly discovery campaigns - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .page { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 1.1rem 1.15rem 1.25rem; margin-bottom: 1.25rem; }
+        .card h2 { margin: 0 0 0.35rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; }
+        .form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .form-group.wide { grid-column: 1 / -1; }
+        label { font-weight: 600; font-size: 0.86rem; }
+        input, select, textarea { width: 100%; box-sizing: border-box; padding: 0.5rem 0.65rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-background); color: var(--color-text); }
+        textarea { min-height: 68px; resize: vertical; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+        .chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.28rem 0.55rem; border: 1px solid var(--color-border); border-radius: 999px; font-size: 0.82rem; }
+        .chip input { width: auto; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+        .table-wrap { overflow: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 0.55rem 0.45rem; border-bottom: 1px solid var(--color-border); font-size: 0.86rem; vertical-align: top; }
+        .error, .success { padding: 0.7rem 0.85rem; border-radius: 8px; margin-bottom: 1rem; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .success { background: #d1fae5; color: #065f46; }
+        .copy-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+        @media (min-width: 800px) {
+            .copy-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 720px) {
+            .form-grid, .form-grid.three { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Weekly discovery campaigns</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="page">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <div id="success-message" class="success" style="display:none;"></div>
+
+        <p class="muted" style="margin-top:0;">
+            These campaigns are planned from the existing <strong>:25 / :55</strong> cleanup job.
+            Activity promotions run Saturday 19:55 Israel time. Group promotions run Sunday 19:55.
+            Sends are delayed a few minutes, one notification per user, using sport / gender / radius matching.
+        </p>
+
+        <div id="campaigns"></div>
+
+        <div class="card">
+            <h2>Recent runs</h2>
+            <div id="runs" class="muted">Loading…</div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/discovery-campaigns.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            loadDiscoveryCampaigns();
+        }
+    </script>
+</body>
+</html>

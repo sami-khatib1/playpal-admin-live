@@ -35,6 +35,7 @@ function navigate(path) {
         '/push-notifications': 'push-notifications.html',
         '/group-discovery-push': 'group-discovery-push.html',
         '/game-discovery-push': 'game-discovery-push.html',
+        '/discovery-campaigns': 'discovery-campaigns.html',
         '/group-milestone-reports': 'group-milestone-reports.html',
         '/outreach-contacts': 'outreach-contacts.html',
         '/availability': 'availability.html',
