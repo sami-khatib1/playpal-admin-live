@@ -51,15 +51,15 @@ async function fetchDefaultImages() {
     }
 }
 
-// Upload default image
-async function uploadDefaultImage(imageId, file) {
+// Upload one or more default images
+async function uploadDefaultImage(imageId, files) {
     try {
         const token = getAuthToken();
         const API_BASE_URL = getApiBaseUrl();
         const url = `${API_BASE_URL}/admin/default-images/upload`;
         
         const formData = new FormData();
-        formData.append('image', file);
+        Array.from(files).forEach(file => formData.append('images', file));
         formData.append('imageId', imageId);
         
         const response = await fetch(url, {
@@ -80,6 +80,27 @@ async function uploadDefaultImage(imageId, file) {
         }
     } catch (error) {
         console.error('❌ Upload default image error:', error);
+        return { success: false, error: `Network error: ${error.message}` };
+    }
+}
+
+async function deleteDefaultImageAsset(assetId) {
+    try {
+        const token = getAuthToken();
+        const API_BASE_URL = getApiBaseUrl();
+        const response = await fetch(`${API_BASE_URL}/admin/default-images/assets/${assetId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            return { success: true, reassigned: data.reassigned || 0 };
+        }
+        return { success: false, error: data.message || data.error || 'Failed to remove default image' };
+    } catch (error) {
         return { success: false, error: `Network error: ${error.message}` };
     }
 }
@@ -153,20 +174,38 @@ function createImageCard(image) {
     card.className = 'image-card';
     card.id = `card-${image.id}`;
     
-    const statusClass = image.exists ? 'status-exists' : 'status-missing';
-    const statusText = image.exists ? '✓ Uploaded' : '✗ Missing';
+    const poolImages = Array.isArray(image.images) ? image.images : [];
+    const hasImages = image.multiple ? poolImages.length > 0 : image.exists;
+    const statusClass = hasImages ? 'status-exists' : 'status-missing';
+    const statusText = image.multiple
+        ? `${poolImages.length} image${poolImages.length === 1 ? '' : 's'} in rotation`
+        : (image.exists ? '✓ Uploaded' : '✗ Missing');
+    const preview = image.multiple
+        ? `<div class="pool-images">
+            ${poolImages.length
+                ? poolImages.map(asset => `
+                    <div class="pool-image-item">
+                        <img src="${asset.url}" alt="${image.description || ''}" class="image-preview">
+                        <button class="delete-btn" onclick="handleAssetDelete('${asset.id}', '${image.id}')">Remove from rotation</button>
+                    </div>
+                `).join('')
+                : '<div class="pool-empty">No images in this rotation</div>'}
+           </div>`
+        : (image.url
+            ? `<img src="${image.url}" alt="${image.description}" class="image-preview" onerror="this.style.display='none'">`
+            : '<div class="image-preview" style="display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary);">No preview available</div>');
     
     card.innerHTML = `
         <h3>${getImageDisplayName(image)}</h3>
         <div class="description">${image.description || ''}</div>
         <div class="image-status ${statusClass}">${statusText}</div>
-        ${image.url ? `<img src="${image.url}" alt="${image.description}" class="image-preview" onerror="this.style.display='none'">` : '<div class="image-preview" style="display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary);">No preview available</div>'}
+        ${preview}
         <div class="upload-section">
             <div class="file-input-wrapper">
-                <input type="file" id="file-${image.id}" accept="image/jpeg,image/jpg,image/png,image/webp" onchange="handleFileSelect('${image.id}', this)">
+                <input type="file" id="file-${image.id}" accept="image/jpeg,image/jpg,image/png,image/webp" ${image.multiple ? 'multiple' : ''} onchange="handleFileSelect('${image.id}', this)">
             </div>
-            <button class="upload-btn" id="upload-btn-${image.id}" onclick="handleUpload('${image.id}')" disabled>Upload Image</button>
-            ${image.exists ? `<button class="delete-btn" onclick="handleDelete('${image.id}')">Delete Image</button>` : ''}
+            <button class="upload-btn" id="upload-btn-${image.id}" onclick="handleUpload('${image.id}')" disabled>${image.multiple ? 'Add Selected Images' : 'Upload Image'}</button>
+            ${!image.multiple && image.exists ? `<button class="delete-btn" onclick="handleDelete('${image.id}')">Delete Image</button>` : ''}
             <div id="message-${image.id}"></div>
         </div>
     `;
@@ -187,9 +226,9 @@ function getImageDisplayName(image) {
     } else if (image.id.startsWith('venues-')) {
         const sportType = image.id.replace('venues-', '');
         if (sportType === 'default') {
-            return 'Venue Default (Generic)';
+            return 'Game Default (Generic)';
         }
-        return `Venue Default (${sportLabel(sportType)})`;
+        return `Game Default (${sportLabel(sportType)})`;
     } else if (image.id.startsWith('communities-')) {
         const sportType = image.id.replace('communities-', '');
         if (sportType === 'default') {
@@ -222,18 +261,16 @@ async function handleUpload(imageId) {
         return;
     }
     
-    const file = fileInput.files[0];
-    
-    // Validate file type
+    const files = Array.from(fileInput.files);
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
+    if (files.some(file => !allowedTypes.includes(file.type))) {
         messageDiv.innerHTML = '<div class="error-message">Invalid file type. Please select a JPEG, PNG, or WebP image.</div>';
         return;
     }
     
     // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (files.some(file => file.size > maxSize)) {
         messageDiv.innerHTML = '<div class="error-message">File too large. Maximum size is 10MB.</div>';
         return;
     }
@@ -244,10 +281,10 @@ async function handleUpload(imageId) {
     messageDiv.innerHTML = '<div style="color: var(--color-text-secondary);">Uploading and compressing image...</div>';
     
     try {
-        const result = await uploadDefaultImage(imageId, file);
+        const result = await uploadDefaultImage(imageId, files);
         
         if (result.success) {
-            messageDiv.innerHTML = '<div class="success-message">Image uploaded successfully!</div>';
+            messageDiv.innerHTML = `<div class="success-message">${files.length} image${files.length === 1 ? '' : 's'} uploaded successfully!</div>`;
             // Reload images after a short delay
             setTimeout(() => {
                 loadDefaultImages();
@@ -260,6 +297,25 @@ async function handleUpload(imageId) {
     } catch (error) {
         messageDiv.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
         uploadBtn.disabled = false;
+        card.classList.remove('loading');
+    }
+}
+
+async function handleAssetDelete(assetId, imageId) {
+    if (!confirm('Remove this image from the rotation? Games and groups using it will receive another random default.')) {
+        return;
+    }
+    const card = document.getElementById(`card-${imageId}`);
+    const messageDiv = document.getElementById(`message-${imageId}`);
+    card.classList.add('loading');
+    messageDiv.innerHTML = '<div style="color: var(--color-text-secondary);">Removing and reassigning affected items...</div>';
+
+    const result = await deleteDefaultImageAsset(assetId);
+    if (result.success) {
+        messageDiv.innerHTML = `<div class="success-message">Removed. ${result.reassigned} affected item${result.reassigned === 1 ? '' : 's'} reassigned.</div>`;
+        setTimeout(() => loadDefaultImages(), 900);
+    } else {
+        messageDiv.innerHTML = `<div class="error-message">${result.error}</div>`;
         card.classList.remove('loading');
     }
 }
@@ -300,4 +356,5 @@ window.loadDefaultImages = loadDefaultImages;
 window.handleFileSelect = handleFileSelect;
 window.handleUpload = handleUpload;
 window.handleDelete = handleDelete;
+window.handleAssetDelete = handleAssetDelete;
 
