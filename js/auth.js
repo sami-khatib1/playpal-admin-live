@@ -24,6 +24,7 @@ function navigate(path) {
         '/questions': 'questions.html',
         '/help-us': 'help-us.html',
         '/activity-demands': 'activity-demands.html',
+        '/create-demand-games': 'create-demand-games.html',
         '/analytics': 'analytics.html',
         '/score': 'score.html',
         '/users': 'users.html',

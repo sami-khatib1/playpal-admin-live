@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Create demand games - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Create demand games</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card create-empty-game-card">
+            <div class="card-header">
+                <h2 class="card-title">Create demand game</h2>
+            </div>
+            <p class="page-lead">
+                Creates a public game with 0 participants and no organizer.
+                The first person who joins becomes the host.
+            </p>
+            <form id="empty-game-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-title">Name</label>
+                        <input id="empty-game-title" type="text" required maxlength="120" placeholder="Suggested Tennis Match - Monday" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-sport">Sport</label>
+                        <select id="empty-game-sport" required></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-city">City</label>
+                        <select id="empty-game-city" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-gender">Gender</label>
+                        <select id="empty-game-gender" required>
+                            <option value="mixed">Mixed / anyone</option>
+                            <option value="female">Girls only</option>
+                            <option value="male">Boys only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-date">Date &amp; time</label>
+                        <input id="empty-game-date" type="datetime-local" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="empty-game-duration">Duration (hours)</label>
+                        <input id="empty-game-duration" type="number" min="0.25" max="12" step="0.25" value="1.5" required />
+                    </div>
+                </div>
+                <div id="empty-game-status" class="empty-game-status" hidden></div>
+                <button id="empty-game-submit" class="btn btn-primary" type="submit">Create demand game</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/emptyGames.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+        }
+    </script>
+</body>
+</html>
