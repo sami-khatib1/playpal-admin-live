@@ -1,9 +1,9 @@
 (function () {
     const FALLBACK_CITIES = [
-        { id: "haifa", name: "Haifa, Israel" },
-        { id: "tel-aviv", name: "Tel-Aviv, Israel" },
-        { id: "jerusalem", name: "Jerusalem, Israel" },
-        { id: "nesher", name: "Nesher, Israel" },
+        { name: "Haifa", latitude: 32.794, longitude: 34.9896 },
+        { name: "Tel Aviv", latitude: 32.0853, longitude: 34.7818 },
+        { name: "Jerusalem", latitude: 31.7683, longitude: 35.2137 },
+        { name: "Nesher", latitude: 32.7667, longitude: 35.05 },
     ];
 
     function apiBase() {
@@ -49,19 +49,130 @@
         return fallback;
     }
 
-    async function loadCities(citySelect) {
+    function normalizeCity(raw) {
+        const name = typeof raw?.name === "string" ? raw.name.trim() : "";
+        const latitude = Number(raw?.latitude);
+        const longitude = Number(raw?.longitude);
+        if (!name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+        return { name, latitude, longitude };
+    }
+
+    function englishLocalities(payload) {
+        const list = Array.isArray(payload?.localities) ? payload.localities : [];
+        const seen = new Set();
+        const out = [];
+        list.forEach((raw) => {
+            const city = normalizeCity(raw);
+            if (!city) return;
+            const key = city.name.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push(city);
+        });
+        out.sort((a, b) => a.name.localeCompare(b.name, "en"));
+        return out;
+    }
+
+    async function loadCities() {
         try {
-            const res = await fetch(`${apiBase()}/admin/empty-games/cities`, {
-                headers: { Authorization: `Bearer ${token()}` },
-            });
+            const res = await fetch(`${apiBase()}/localities`);
             const data = res.ok ? await res.json() : null;
-            const cities = Array.isArray(data?.cities) && data.cities.length
-                ? data.cities
-                : FALLBACK_CITIES;
-            fillSelect(citySelect, cities, (c) => c.id, (c) => c.name);
+            const cities = englishLocalities(data);
+            return cities.length ? cities : FALLBACK_CITIES;
         } catch {
-            fillSelect(citySelect, FALLBACK_CITIES, (c) => c.id, (c) => c.name);
+            return FALLBACK_CITIES;
         }
+    }
+
+    function filterCities(cities, query) {
+        const q = String(query || "").trim().toLowerCase();
+        if (!q) return cities.slice(0, 40);
+        return cities.filter((city) => city.name.toLowerCase().includes(q)).slice(0, 40);
+    }
+
+    function bindCitySearch(cities) {
+        const searchInput = document.getElementById("empty-game-city-search");
+        const hiddenInput = document.getElementById("empty-game-city");
+        const listEl = document.getElementById("empty-game-city-list");
+        if (!searchInput || !hiddenInput || !listEl) return () => null;
+
+        let activeIndex = -1;
+        let visible = [];
+
+        function selectedCity() {
+            const name = hiddenInput.value.trim();
+            return cities.find((city) => city.name === name) || null;
+        }
+
+        function closeList() {
+            listEl.hidden = true;
+            activeIndex = -1;
+        }
+
+        function renderList(query) {
+            visible = filterCities(cities, query);
+            listEl.innerHTML = "";
+            if (visible.length === 0) {
+                const empty = document.createElement("li");
+                empty.className = "is-empty";
+                empty.textContent = "No matching city";
+                listEl.appendChild(empty);
+            } else {
+                visible.forEach((city, index) => {
+                    const item = document.createElement("li");
+                    item.textContent = city.name;
+                    item.dataset.index = String(index);
+                    if (index === activeIndex) item.classList.add("is-active");
+                    item.addEventListener("mousedown", (event) => {
+                        event.preventDefault();
+                        chooseCity(city);
+                    });
+                    listEl.appendChild(item);
+                });
+            }
+            listEl.hidden = false;
+        }
+
+        function chooseCity(city) {
+            searchInput.value = city.name;
+            hiddenInput.value = city.name;
+            closeList();
+        }
+
+        searchInput.addEventListener("focus", () => {
+            renderList(searchInput.value);
+        });
+        searchInput.addEventListener("input", () => {
+            hiddenInput.value = "";
+            activeIndex = -1;
+            renderList(searchInput.value);
+        });
+        searchInput.addEventListener("keydown", (event) => {
+            if (listEl.hidden && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+                renderList(searchInput.value);
+            }
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                if (!visible.length) return;
+                activeIndex = (activeIndex + 1) % visible.length;
+                renderList(searchInput.value);
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                if (!visible.length) return;
+                activeIndex = activeIndex <= 0 ? visible.length - 1 : activeIndex - 1;
+                renderList(searchInput.value);
+            } else if (event.key === "Enter" && !listEl.hidden && activeIndex >= 0 && visible[activeIndex]) {
+                event.preventDefault();
+                chooseCity(visible[activeIndex]);
+            } else if (event.key === "Escape") {
+                closeList();
+            }
+        });
+        searchInput.addEventListener("blur", () => {
+            setTimeout(closeList, 120);
+        });
+
+        return selectedCity;
     }
 
     function fillSports(sportSelect) {
@@ -108,13 +219,12 @@
         return data;
     }
 
-    function init() {
+    async function init() {
         const form = document.getElementById("empty-game-form");
         if (!form) return;
 
         const titleInput = document.getElementById("empty-game-title");
         const sportSelect = document.getElementById("empty-game-sport");
-        const citySelect = document.getElementById("empty-game-city");
         const genderSelect = document.getElementById("empty-game-gender");
         const dateInput = document.getElementById("empty-game-date");
         const durationInput = document.getElementById("empty-game-duration");
@@ -122,7 +232,8 @@
         const submitBtn = document.getElementById("empty-game-submit");
 
         fillSports(sportSelect);
-        loadCities(citySelect);
+        const cities = await loadCities();
+        const selectedCity = bindCitySearch(cities);
         if (dateInput && !dateInput.value) dateInput.value = defaultDateValue();
 
         form.addEventListener("submit", async (event) => {
@@ -130,7 +241,7 @@
             showStatus(statusEl, "", "");
             const title = titleInput.value.trim();
             const sportType = sportSelect.value;
-            const city = citySelect.value;
+            const city = selectedCity();
             const gender = genderSelect.value;
             const dateTime = dateInput.value
                 ? new Date(dateInput.value).toISOString()
@@ -138,7 +249,7 @@
             const duration = Number(durationInput.value);
 
             if (!title || !sportType || !city || !dateTime || !duration) {
-                showStatus(statusEl, "Fill in every field.", "error");
+                showStatus(statusEl, "Fill in every field, and pick a city from the list.", "error");
                 return;
             }
 
@@ -147,7 +258,11 @@
                 const result = await createEmptyGame({
                     title,
                     sportType,
-                    city,
+                    city: city.name,
+                    venueName: `${city.name}, Israel`,
+                    venueAddress: `${city.name}, Israel`,
+                    venueLat: city.latitude,
+                    venueLng: city.longitude,
                     genderRestriction: gender,
                     dateTime,
                     duration,

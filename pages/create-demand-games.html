@@ -39,8 +39,12 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label" for="empty-game-city">City</label>
-                        <select id="empty-game-city" required></select>
+                        <label class="form-label" for="empty-game-city-search">City</label>
+                        <div class="city-search" id="empty-game-city-wrap">
+                            <input id="empty-game-city-search" type="search" autocomplete="off" placeholder="Search city…" required />
+                            <input id="empty-game-city" type="hidden" />
+                            <ul id="empty-game-city-list" class="city-search-list" hidden></ul>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="empty-game-gender">Gender</label>
