@@ -246,6 +246,11 @@ async function renderRequestDetails(request) {
         </div>
         
         <div class="request-detail-row">
+            <div class="request-detail-label">Protected space:</div>
+            <div class="request-detail-value">${request.hasProtectedSpace ? 'Yes — מרחב מוגן on site' : 'No'}</div>
+        </div>
+
+        <div class="request-detail-row">
             <div class="request-detail-label">Amenities:</div>
             <div class="request-detail-value">
                 ${request.amenities && request.amenities.length > 0 ? 

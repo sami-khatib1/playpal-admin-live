@@ -7,6 +7,7 @@ function navigate(path) {
         '/login': 'login.html',
         '/dashboard': 'dashboard.html',
         '/venue-requests': 'venue-requests.html',
+        '/shelters': 'shelters.html',
         '/default-images': 'default-images.html',
         '/announcements': 'announcements.html',
         '/questions': 'questions.html',
