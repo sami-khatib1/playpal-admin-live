@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Weekly discovery campaigns - PlayPal Admin</title>
+    <title>Discovery campaigns - PlayPal Admin</title>
     <link rel="stylesheet" href="../styles/main.css">
     <link rel="stylesheet" href="../styles/layout.css">
     <link rel="stylesheet" href="../styles/dashboard.css">
@@ -40,7 +40,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Weekly discovery campaigns</h1>
+        <h1>Discovery campaigns</h1>
         <div class="header-actions">
             <span id="admin-name"></span>
             <button class="btn btn-secondary" onclick="logout()">Logout</button>
@@ -52,15 +52,15 @@
         <div id="success-message" class="success" style="display:none;"></div>
 
         <p class="muted" style="margin-top:0;">
-            These campaigns are planned from the existing <strong>:25 / :55</strong> cleanup job.
-            Activity promotions run Saturday 19:55 Israel time. Group promotions run Sunday 19:55.
-            Sends are delayed a few minutes, one notification per user, using sport / gender / radius matching.
+            These campaigns use the settings below.
+            A standalone game is promoted when it is created.
+            Group promotions still run Monday at 19:00 Israel time.
         </p>
 
         <div id="campaigns"></div>
 
         <div class="card">
-            <h2>Recent runs</h2>
+            <h2>Recent group runs</h2>
             <div id="runs" class="muted">Loading…</div>
         </div>
     </div>

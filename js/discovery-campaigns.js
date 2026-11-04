@@ -37,7 +37,7 @@ function showSuccess(msg) {
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const COPY_VARIANTS = {
     game: ["standard"],
-    group: ["standard", "new", "rising", "low"],
+    group: ["standard", "new", "rising", "low", "need"],
 };
 const LANGS = [
     { id: "en", label: "English" },
@@ -86,12 +86,126 @@ function genderChips(type, selected) {
     `).join("");
 }
 
+function renderGameCampaign(config) {
+    const weights = config.scoreWeights || {};
+    const copyHtml = LANGS.map((lang) =>
+        copyBlock("game", "standard", lang.id, config.localizedCopy?.standard?.[lang.id]),
+    ).join("");
+    return `
+        <div class="card" id="card-game">
+            <h2>Standalone game push</h2>
+            <p class="muted">Sends when someone creates a public or private game that is not in a group, if it starts between the lead time and the lookahead. Friends of the creator are chosen first. The score rules stay the same.</p>
+            <label class="chip" style="margin: 0.75rem 0;">
+                <input type="checkbox" id="game-enabled" ${config.enabled ? "checked" : ""}>
+                Enabled
+            </label>
+            <h3>Notification text</h3>
+            <div class="copy-grid">${copyHtml}</div>
+            <h3>Who receives it</h3>
+            <div class="form-grid three">
+                <div class="form-group"><label>Minimum people</label>${field("game-minRecipients", weights.minRecipients ?? config.minRecipients ?? 1, 'type="number" min="1" max="500"')}</div>
+                <div class="form-group"><label>Maximum people</label>${field("game-maxRecipientsPerEntity", config.maxRecipientsPerEntity, 'type="number" min="1" max="500"')}</div>
+                <div class="form-group">
+                    <label>Friends first</label>
+                    <label class="chip"><input type="checkbox" id="game-prioritizeFriends" ${(weights.prioritizeFriends == null ? config.prioritizeFriends !== false : Number(weights.prioritizeFriends) !== 0) ? "checked" : ""}> Prioritize the creator's friends</label>
+                </div>
+            </div>
+            <p class="muted">If fewer people match than the minimum, everyone who matches is still notified.</p>
+            <div class="form-grid three">
+                <div class="form-group"><label>Earliest start (hours)</label>${field("game-leadMinHours", weights.leadMinHours ?? config.leadMinHours ?? 6, 'type="number" min="0" max="168"')}</div>
+                <div class="form-group"><label>Latest start (days)</label>${field("game-lookaheadDays", config.lookaheadDays, 'type="number" min="1" max="60"')}</div>
+                <div class="form-group"><label>Radius km</label>${field("game-radiusKm", config.radiusKm, 'type="number" min="1" max="500" step="0.5"')}</div>
+            </div>
+            <div class="form-grid three">
+                <div class="form-group"><label>Active within days</label>${field("game-activeWithinDays", config.activeWithinDays, 'type="number" min="1" max="365"')}</div>
+                <div class="form-group"><label>Minimum score</label>${field("game-minimumScore", config.minimumScore, 'type="number" min="1" max="100"')}</div>
+                <div class="form-group"><label>Cooldown hours</label>${field("game-cooldownHours", config.cooldownHours, 'type="number" min="0" max="168"')}</div>
+            </div>
+            <div class="form-grid three">
+                <div class="form-group"><label>Weekly limit per person</label>${field("game-weeklyUserLimit", config.weeklyUserLimit, 'type="number" min="1" max="7"')}</div>
+                <div class="form-group"><label>Same game cooldown (days)</label>${field("game-sameEntityCooldownDays", config.sameEntityCooldownDays, 'type="number" min="1" max="365"')}</div>
+            </div>
+            <div class="form-group wide">
+                <label>Sports (empty = any favorite or preferred sport)</label>
+                <div class="chips">${sportChips("game", config.sports)}</div>
+            </div>
+            <div class="form-group wide">
+                <label>Game genders</label>
+                <div class="chips">${genderChips("game", config.genders)}</div>
+            </div>
+            <div class="form-grid three">
+                <div class="form-group"><label>Sport weight</label>${field("game-w-sport", weights.sport ?? 30, 'type="number" min="0" max="100"')}</div>
+                <div class="form-group"><label>Distance weight</label>${field("game-w-distance", weights.distance ?? 25, 'type="number" min="0" max="100"')}</div>
+                <div class="form-group"><label>Activity weight</label>${field("game-w-activity", weights.activity ?? 15, 'type="number" min="0" max="100"')}</div>
+                <div class="form-group"><label>Need weight</label>${field("game-w-need", weights.need ?? 15, 'type="number" min="0" max="100"')}</div>
+                <div class="form-group"><label>Game quality weight</label>${field("game-w-entity", weights.entity ?? 10, 'type="number" min="0" max="100"')}</div>
+                <div class="form-group"><label>Novelty weight</label>${field("game-w-novelty", weights.novelty ?? 5, 'type="number" min="0" max="100"')}</div>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-primary" type="button" onclick="saveDiscoveryCampaign('game')">Save game promotion</button>
+            </div>
+            <h3>Created standalone games</h3>
+            <div id="game-sends" class="muted">Loading…</div>
+        </div>
+    `;
+}
+
+function renderGameSends(games) {
+    const el = document.getElementById("game-sends");
+    if (!el) return;
+    if (!games || games.length === 0) {
+        el.textContent = "No standalone games yet.";
+        return;
+    }
+    el.innerHTML = `
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game</th>
+                        <th>Starts</th>
+                        <th>Sent to</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${games.map((game) => {
+                        const promo = game.promotion;
+                        const when = game.dateTime ? new Date(game.dateTime).toLocaleString() : "";
+                        const people = promo?.recipients || [];
+                        const reasonLabels = {
+                            outside_time_window: "Starts outside the chosen time window",
+                            no_coordinates: "No location on the game",
+                            sport_not_allowed: "Sport is turned off for this promotion",
+                            gender_not_allowed: "Gender is turned off for this promotion",
+                            no_open_spots: "Game was already full",
+                            no_matches: "Nobody matched",
+                        };
+                        const reason = !promo
+                            ? "No promotion recorded"
+                            : people.length
+                                ? ""
+                                : (reasonLabels[promo.reason] || promo.reason || promo.status || "Nobody notified");
+                        const list = people.length
+                            ? `<ul>${people.map((person) => `<li>${escapeHtml(person.name || person.username || person.userId)}${person.friend ? " · friend" : ""} · ${escapeHtml(person.status)} · ${escapeHtml(person.score)}</li>`).join("")}</ul>`
+                            : `<span class="muted">${escapeHtml(reason)}</span>`;
+                        return `<tr>
+                            <td><strong>${escapeHtml(game.title || "Game")}</strong><div class="muted">${escapeHtml(game.sportType || "")}${game.isPrivate ? " · private" : " · public"}</div></td>
+                            <td>${escapeHtml(when)}</td>
+                            <td>${list}</td>
+                        </tr>`;
+                    }).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
 function renderCampaign(config) {
+    if (config.id === "game") return renderGameCampaign(config);
     const type = config.id;
     const title = type === "game" ? "Standalone activity push" : "Group discovery push";
-    const subtitle = type === "game"
-        ? "Public standalone and weekly games. Matches users by favorite sport, gender, and radius."
-        : "New, rising, and low-member public groups. One notification per user.";
+    const frequency = config.frequency === "daily" ? "daily" : "weekly";
+    const subtitle = "Public groups that need players. Monday 19:00 Israel.";
     const weights = config.scoreWeights || {};
     const mix = config.groupMix || {};
     const nextRun = config.nextRunTime ? new Date(config.nextRunTime).toLocaleString() : "disabled";
@@ -133,6 +247,13 @@ function renderCampaign(config) {
             </label>
             <div class="form-grid three">
                 <div class="form-group">
+                    <label>Frequency</label>
+                    <select id="${type}-frequency">
+                        <option value="daily" ${frequency === "daily" ? "selected" : ""}>Daily</option>
+                        <option value="weekly" ${frequency === "weekly" ? "selected" : ""}>Weekly</option>
+                    </select>
+                </div>
+                <div class="form-group" ${frequency === "daily" ? 'style="display:none;"' : ""}>
                     <label>Weekday</label>
                     <select id="${type}-dayOfWeek">
                         ${DAYS.map((name, i) => `<option value="${i}" ${Number(config.dayOfWeek) === i ? "selected" : ""}>${name}</option>`).join("")}
@@ -215,6 +336,7 @@ function readCopy(type) {
 function readCampaign(type) {
     const payload = {
         enabled: document.getElementById(`${type}-enabled`)?.checked === true,
+        frequency: val(`${type}-frequency`) || "weekly",
         dayOfWeek: Number(val(`${type}-dayOfWeek`)),
         hour: Number(val(`${type}-hour`)),
         minute: Number(val(`${type}-minute`)),
@@ -251,8 +373,20 @@ function readCampaign(type) {
             new: Number(val(`${type}-mix-new`)),
             rising: Number(val(`${type}-mix-rising`)),
         };
-    } else {
-        payload.fanoutPerOpenSpot = Number(val(`${type}-fanoutPerOpenSpot`));
+    }
+    if (type === "game") {
+        delete payload.frequency;
+        delete payload.dayOfWeek;
+        delete payload.hour;
+        delete payload.minute;
+        delete payload.delayMinMinutes;
+        delete payload.delayMaxMinutes;
+        delete payload.maxRecipientsPerRun;
+        delete payload.entityPoolLimit;
+        payload.scoreWeights.minRecipients = Number(val("game-minRecipients"));
+        payload.scoreWeights.leadMinHours = Number(val("game-leadMinHours"));
+        payload.scoreWeights.prioritizeFriends =
+            document.getElementById("game-prioritizeFriends")?.checked ? 1 : 0;
     }
     return payload;
 }
@@ -276,8 +410,9 @@ async function api(path, options = {}) {
 function renderRuns(runs) {
     const el = document.getElementById("runs");
     if (!el) return;
-    if (!runs || runs.length === 0) {
-        el.innerHTML = "No runs yet.";
+    const groupRuns = (runs || []).filter((run) => run.campaignType === "group");
+    if (groupRuns.length === 0) {
+        el.innerHTML = "No group runs yet.";
         return;
     }
     el.innerHTML = `
@@ -295,7 +430,7 @@ function renderRuns(runs) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${runs.map((run) => `
+                    ${groupRuns.map((run) => `
                         <tr>
                             <td>${escapeHtml(run.startedAt ? new Date(run.startedAt).toLocaleString() : "")}</td>
                             <td>${escapeHtml(run.campaignType)}</td>
@@ -320,6 +455,8 @@ async function loadDiscoveryCampaigns() {
         const campaigns = data.campaigns || [];
         root.innerHTML = campaigns.map(renderCampaign).join("");
         renderRuns(data.runs || []);
+        const sends = await api("/admin/growth/discovery-campaigns/game/sends");
+        renderGameSends(sends.games || []);
     } catch (error) {
         showError(error.message);
     }
