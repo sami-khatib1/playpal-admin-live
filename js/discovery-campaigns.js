@@ -49,13 +49,18 @@ function field(name, value, attrs = "") {
     return `<input id="${name}" class="form-input" value="${escapeHtml(value ?? "")}" ${attrs}>`;
 }
 
+function languageLabel(code) {
+    return LANGS.find((lang) => lang.id === code)?.label || String(code || "").toUpperCase();
+}
+
 function copyBlock(type, variant, lang, pair) {
     const prefix = `${type}-${variant}-${lang}`;
+    const label = languageLabel(lang);
     return `
         <div class="form-group">
-            <label>${escapeHtml(lang.toUpperCase())} title</label>
+            <label>${escapeHtml(label)} title</label>
             ${field(`${prefix}-title`, pair?.title || "", 'maxlength="120"')}
-            <label>${escapeHtml(lang.toUpperCase())} body</label>
+            <label>${escapeHtml(label)} body</label>
             <textarea id="${prefix}-body" maxlength="2000">${escapeHtml(pair?.body || "")}</textarea>
         </div>
     `;
@@ -100,6 +105,7 @@ function renderGameCampaign(config) {
                 Enabled
             </label>
             <h3>Notification text</h3>
+            <p class="muted">English, Hebrew, and Arabic. Each person gets the title and body for their preferred language. English is used when they have not chosen one.</p>
             <div class="copy-grid">${copyHtml}</div>
             <h3>Who receives it</h3>
             <div class="form-grid three">
