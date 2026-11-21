@@ -99,7 +99,7 @@
 
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Clusters</h2>
+                <h2 class="card-title">Who voted</h2>
                 <button class="btn btn-primary" onclick="loadAvailability()">Refresh</button>
             </div>
             <div class="toolbar">
@@ -127,30 +127,7 @@
                     <button class="btn btn-secondary" onclick="loadAvailability()">Apply</button>
                 </div>
             </div>
-            <div id="loading" class="loading">Loading availability clusters…</div>
-            <div id="table-wrap" class="table-wrap" style="display:none;">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>City</th>
-                            <th>Sport</th>
-                            <th>Day</th>
-                            <th>Time</th>
-                            <th>Votes</th>
-                            <th>Voters</th>
-                            <th>Organizers</th>
-                            <th>Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody id="availability-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card section-gap">
-            <div class="card-header">
-                <h2 class="card-title">Who voted</h2>
-            </div>
+            <div id="loading" class="loading">Loading availability…</div>
             <div id="people-meta" class="muted" style="margin-bottom:.65rem;">Loading...</div>
             <div id="people-list" class="people-list"></div>
         </div>

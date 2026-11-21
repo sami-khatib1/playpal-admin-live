@@ -73,54 +73,6 @@ function formatDate(value) {
     return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }
 
-function personLabel(user, id) {
-    const name = String(user?.name || "").trim();
-    const username = String(user?.username || "").trim();
-    if (name && username) return `${name} (@${username})`;
-    if (name) return name;
-    if (username) return `@${username}`;
-    return `User ${String(id || "").slice(0, 8)}`;
-}
-
-function voterNames(row, usersById) {
-    const ids = Array.isArray(row?.voterIds) ? row.voterIds : [];
-    const labels = [];
-    const seen = new Set();
-    for (const rawId of ids) {
-        const id = String(rawId || "").trim();
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-        labels.push(personLabel(usersById.get(id), id));
-    }
-    return labels;
-}
-
-function renderRows(votes, usersById) {
-    const tbody = document.getElementById("availability-table-body");
-    if (!tbody) return;
-    tbody.innerHTML = votes
-        .map((row) => {
-            const names = voterNames(row, usersById);
-            const voters = names.length
-                ? `<div class="chips">${names
-                      .map((label) => `<span class="chip">${escapeHtml(label)}</span>`)
-                      .join("")}</div>`
-                : "—";
-            return `
-            <tr>
-                <td>${escapeHtml(row.city || "—")}</td>
-                <td>${escapeHtml(sportLabel(row.sportType))}</td>
-                <td>${escapeHtml(dayLabel(row.dayOfWeek))}</td>
-                <td>${escapeHtml(timeLabel(row.timeSection))}</td>
-                <td>${escapeHtml(row.votesCount ?? 0)}</td>
-                <td>${voters}</td>
-                <td>${escapeHtml(row.organizersCount ?? 0)}</td>
-                <td>${escapeHtml(formatDate(row.updatedAt))}</td>
-            </tr>`;
-        })
-        .join("");
-}
-
 function compareSlots(a, b) {
     const dayDiff = Number(a.dayOfWeek) - Number(b.dayOfWeek);
     if (dayDiff !== 0) return dayDiff;
@@ -346,7 +298,6 @@ async function fetchAdminJson(path, token) {
 
 async function loadAvailability() {
     const loading = document.getElementById("loading");
-    const tableWrap = document.getElementById("table-wrap");
     const meta = document.getElementById("meta");
     const token = getToken();
     if (!token) {
@@ -356,7 +307,6 @@ async function loadAvailability() {
 
     showError("");
     if (loading) loading.style.display = "block";
-    if (tableWrap) tableWrap.style.display = "none";
     if (meta) meta.textContent = "Loading...";
 
     try {
@@ -371,12 +321,10 @@ async function loadAvailability() {
             console.error(error);
             namesLoaded = false;
         }
-        renderRows(votes, usersById);
         renderPeople(buildPeople(votes, usersById), namesLoaded);
         renderHistogram(buildHistogram(votes));
-        if (meta) meta.textContent = `${votes.length} cluster${votes.length === 1 ? "" : "s"}`;
+        if (meta) meta.textContent = `${votes.length} slot${votes.length === 1 ? "" : "s"}`;
         if (loading) loading.style.display = "none";
-        if (tableWrap) tableWrap.style.display = "block";
     } catch (e) {
         console.error(e);
         showError(e.message || "Failed to load availability");
