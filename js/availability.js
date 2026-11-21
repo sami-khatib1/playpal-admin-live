@@ -73,21 +73,51 @@ function formatDate(value) {
     return d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
 }
 
-function renderRows(votes) {
+function personLabel(user, id) {
+    const name = String(user?.name || "").trim();
+    const username = String(user?.username || "").trim();
+    if (name && username) return `${name} (@${username})`;
+    if (name) return name;
+    if (username) return `@${username}`;
+    return `User ${String(id || "").slice(0, 8)}`;
+}
+
+function voterNames(row, usersById) {
+    const ids = Array.isArray(row?.voterIds) ? row.voterIds : [];
+    const labels = [];
+    const seen = new Set();
+    for (const rawId of ids) {
+        const id = String(rawId || "").trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        labels.push(personLabel(usersById.get(id), id));
+    }
+    return labels;
+}
+
+function renderRows(votes, usersById) {
     const tbody = document.getElementById("availability-table-body");
     if (!tbody) return;
     tbody.innerHTML = votes
-        .map((row) => `
+        .map((row) => {
+            const names = voterNames(row, usersById);
+            const voters = names.length
+                ? `<div class="chips">${names
+                      .map((label) => `<span class="chip">${escapeHtml(label)}</span>`)
+                      .join("")}</div>`
+                : "—";
+            return `
             <tr>
                 <td>${escapeHtml(row.city || "—")}</td>
                 <td>${escapeHtml(sportLabel(row.sportType))}</td>
                 <td>${escapeHtml(dayLabel(row.dayOfWeek))}</td>
                 <td>${escapeHtml(timeLabel(row.timeSection))}</td>
                 <td>${escapeHtml(row.votesCount ?? 0)}</td>
+                <td>${voters}</td>
                 <td>${escapeHtml(row.organizersCount ?? 0)}</td>
                 <td>${escapeHtml(formatDate(row.updatedAt))}</td>
-            </tr>
-        `)
+            </tr>`;
+        })
         .join("");
 }
 
@@ -120,8 +150,8 @@ function buildPeople(votes, usersById) {
             slots.sort(compareSlots);
             return {
                 id,
-                name: name || username || `User ${id.slice(0, 8)}`,
-                username,
+                name: name || (username ? `@${username}` : `User ${id.slice(0, 8)}`),
+                username: name ? username : "",
                 slots,
             };
         })
@@ -263,6 +293,42 @@ function collectFilters() {
     return params;
 }
 
+async function fetchVoterDirectory(votes, token) {
+    const ids = [];
+    const seen = new Set();
+    for (const row of votes) {
+        const voterIds = Array.isArray(row?.voterIds) ? row.voterIds : [];
+        for (const rawId of voterIds) {
+            const id = String(rawId || "").trim();
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            ids.push(id);
+        }
+    }
+    const usersById = new Map();
+    const chunkSize = 80;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+        const userIds = ids.slice(i, i + chunkSize);
+        const res = await fetch(`${getApiBaseUrl()}/users/batch`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userIds }),
+        });
+        const data = await res.json().catch(() => []);
+        if (!res.ok) {
+            throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+        }
+        const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+        for (const user of list) {
+            if (user?.id) usersById.set(String(user.id), user);
+        }
+    }
+    return usersById;
+}
+
 async function fetchAdminJson(path, token) {
     const res = await fetch(`${getApiBaseUrl()}${path}`, {
         method: "GET",
@@ -295,22 +361,18 @@ async function loadAvailability() {
 
     try {
         const params = collectFilters();
-        const [data, usersResult] = await Promise.all([
-            fetchAdminJson(`/admin/availability?${params.toString()}`, token),
-            fetchAdminJson("/admin/users", token).catch((error) => {
-                console.error(error);
-                return null;
-            }),
-        ]);
-
+        const data = await fetchAdminJson(`/admin/availability?${params.toString()}`, token);
         const votes = Array.isArray(data.votes) ? data.votes : [];
-        const usersById = new Map(
-            (Array.isArray(usersResult?.users) ? usersResult.users : [])
-                .filter((user) => user?.id)
-                .map((user) => [String(user.id), user]),
-        );
-        renderRows(votes);
-        renderPeople(buildPeople(votes, usersById), usersResult != null);
+        let usersById = new Map();
+        let namesLoaded = true;
+        try {
+            usersById = await fetchVoterDirectory(votes, token);
+        } catch (error) {
+            console.error(error);
+            namesLoaded = false;
+        }
+        renderRows(votes, usersById);
+        renderPeople(buildPeople(votes, usersById), namesLoaded);
         renderHistogram(buildHistogram(votes));
         if (meta) meta.textContent = `${votes.length} cluster${votes.length === 1 ? "" : "s"}`;
         if (loading) loading.style.display = "none";
