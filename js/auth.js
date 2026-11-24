@@ -41,6 +41,7 @@ function navigate(path) {
         '/group-milestone-reports': 'group-milestone-reports.html',
         '/outreach-contacts': 'outreach-contacts.html',
         '/availability': 'availability.html',
+        '/claude-games-scraping': 'claude-games-scraping.html',
         '/join-requests': 'join-requests.html',
         '/ratings': 'ratings.html',
         '/community-social-spotlight': 'community-social-spotlight.html',

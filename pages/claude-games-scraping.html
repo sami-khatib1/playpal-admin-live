@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>claude-games scraping - PlayPal Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .toolbar {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .table-wrap { overflow: auto; max-height: 40vh; margin-top: 0.75rem; }
+        .table td, .table th { white-space: nowrap; }
+        .table td.title-cell { white-space: normal; min-width: 12rem; }
+        .json-view {
+            margin: 0;
+            max-height: 65vh;
+            overflow: auto;
+            padding: 0.85rem 1rem;
+            border-radius: 8px;
+            background: var(--color-surface, #111);
+            color: var(--color-text, #eee);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>claude-games scraping</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display: none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Pending games only. Each object is the <code>pending_games</code> row, when it was created,
+            the people in that game, which of those people are friends, and the other rows stored for that game.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Pending games</h2>
+                <div class="toolbar">
+                    <button class="btn btn-secondary" type="button" onclick="copyScrapeJson()">Copy JSON</button>
+                    <button class="btn btn-secondary" type="button" onclick="downloadScrapeJson()">Download JSON</button>
+                    <button class="btn btn-primary" type="button" onclick="loadPendingGamesScrape()">Refresh</button>
+                </div>
+            </div>
+            <p id="meta" class="muted">Loading…</p>
+            <div id="loading" class="loading">Loading…</div>
+            <div id="table-wrap" class="table-wrap" style="display:none;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Created</th>
+                            <th>Starts</th>
+                            <th>Title</th>
+                            <th>Sport</th>
+                            <th>People</th>
+                            <th>Friend pairs</th>
+                        </tr>
+                    </thead>
+                    <tbody id="games-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 1rem;">
+            <div class="card-header">
+                <h2 class="card-title">JSON</h2>
+            </div>
+            <pre id="json-view" class="json-view">Loading…</pre>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/sportLabels.js"></script>
+    <script src="../js/claudeGamesScraping.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent = admin.name || admin.email || 'Admin';
+            }
+            if (window.DbTarget && typeof DbTarget.onChange === 'function') {
+                DbTarget.onChange(function () { loadPendingGamesScrape(); });
+            }
+            loadPendingGamesScrape();
+        }
+    </script>
+</body>
+</html>
