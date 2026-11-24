@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Liquidity - Claude - Matchn Admin</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/layout.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <style>
+        .toolbar {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .muted { color: var(--color-text-secondary); font-size: 0.88rem; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 0.7rem;
+            margin: 0.9rem 0;
+        }
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            padding: 0.8rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            background: var(--color-surface);
+        }
+        .metric-card span {
+            color: var(--color-text-secondary);
+            font-size: 0.78rem;
+        }
+        .metric-card strong { font-size: 1.3rem; }
+        .table-wrap { overflow: auto; max-height: 42vh; }
+        .table td, .table th { white-space: nowrap; }
+        .table td.title-cell { white-space: normal; min-width: 12rem; }
+        .code-view {
+            margin: 0;
+            max-height: 65vh;
+            overflow: auto;
+            padding: 0.9rem 1rem;
+            border-radius: 8px;
+            background: var(--color-surface, #111);
+            color: var(--color-text, #eee);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+        #json-view { white-space: pre; }
+        #copy-status { min-height: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Liquidity - Claude</h1>
+        <div class="header-actions">
+            <span id="admin-name"></span>
+            <button class="btn btn-secondary" type="button" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="error-message" class="error" style="display:none;"></div>
+        <p class="muted" style="margin-bottom: 1rem;">
+            Daily agent-ready JSON built from all current pending games, games that started in the last 30 days,
+            roster history, friendships, reported no-shows, searches, demand requests, and availability votes.
+            It contains no user names, emails, phone numbers, or raw user IDs.
+        </p>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Liquidity report</h2>
+                <div class="toolbar">
+                    <button class="btn btn-secondary" type="button" onclick="copyLiquidityPrompt()">Copy prompt</button>
+                    <button class="btn btn-secondary" type="button" onclick="copyLiquidityJson()">Copy JSON</button>
+                    <button class="btn btn-secondary" type="button" onclick="copyLiquidityPackage()">Copy prompt + JSON</button>
+                    <button class="btn btn-secondary" type="button" onclick="downloadLiquidityJson()">Download JSON</button>
+                    <button class="btn btn-primary" type="button" onclick="loadLiquidityClaude()">Refresh</button>
+                </div>
+            </div>
+            <p id="meta" class="muted">Loading…</p>
+            <p id="copy-status" class="muted"></p>
+            <div id="loading" class="loading">Building the report…</div>
+            <div id="liquidity-content" style="display:none;">
+                <div id="liquidity-metrics" class="metric-grid"></div>
+
+                <h3>Urgent pending-game risks</h3>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Starts</th>
+                                <th>Game</th>
+                                <th>Sport</th>
+                                <th>City</th>
+                                <th>Players / minimum</th>
+                                <th>Friend pairs</th>
+                                <th>Risk reasons</th>
+                            </tr>
+                        </thead>
+                        <tbody id="urgent-games-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header">
+                <h2 class="card-title">Daily agent prompt</h2>
+                <button class="btn btn-secondary" type="button" onclick="copyLiquidityPrompt()">Copy prompt</button>
+            </div>
+            <pre id="agent-prompt" class="code-view"></pre>
+        </div>
+
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header">
+                <h2 class="card-title">JSON</h2>
+            </div>
+            <pre id="json-view" class="code-view">Loading…</pre>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/dbTarget.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/app.js"></script>
+    <script src="../js/adminShell.js"></script>
+    <script src="../js/liquidityClaude.js"></script>
+    <script>
+        if (!isAuthenticated()) {
+            navigate('/login');
+        } else {
+            const admin = getCurrentAdmin();
+            if (admin) {
+                document.getElementById('admin-name').textContent =
+                    admin.name || admin.email || 'Admin';
+            }
+            if (window.DbTarget && typeof DbTarget.onChange === 'function') {
+                DbTarget.onChange(function () { loadLiquidityClaude(); });
+            }
+            loadLiquidityClaude();
+        }
+    </script>
+</body>
+</html>

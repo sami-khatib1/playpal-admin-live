@@ -18,6 +18,7 @@ function navigate(path) {
         '/analytics': 'analytics.html',
         '/games-not-filled': 'games-not-filled.html',
         '/claude-games-scraping': 'claude-games-scraping.html',
+        '/liquidity-claude': 'liquidity-claude.html',
         '/score': 'score.html',
         '/users': 'users.html',
         '/tokens-last-active': 'tokens-last-active.html',

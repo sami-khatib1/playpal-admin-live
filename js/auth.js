@@ -42,6 +42,7 @@ function navigate(path) {
         '/outreach-contacts': 'outreach-contacts.html',
         '/availability': 'availability.html',
         '/claude-games-scraping': 'claude-games-scraping.html',
+        '/liquidity-claude': 'liquidity-claude.html',
         '/join-requests': 'join-requests.html',
         '/ratings': 'ratings.html',
         '/community-social-spotlight': 'community-social-spotlight.html',
